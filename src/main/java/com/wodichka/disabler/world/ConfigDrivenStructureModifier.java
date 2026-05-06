@@ -2,6 +2,8 @@ package com.wodichka.disabler.world;
 
 import com.wodichka.disabler.config.DisablerConfig;
 import com.mojang.serialization.MapCodec;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.resources.ResourceKey;
@@ -26,11 +28,24 @@ public enum ConfigDrivenStructureModifier implements StructureModifier {
         StructureSettingsBuilder settingsBuilder = builder.getStructureSettings();
 
         if (structureId != null && DisablerConfig.isBlockedStructure(structureId)) {
-            settingsBuilder.setBiomes(HolderSet.<Biome>empty());
-            for (MobCategory category : MobCategory.values()) {
-                settingsBuilder.removeSpawnOverrides(category);
-            }
+            clearStructure(settingsBuilder);
             return;
+        }
+
+        if (DisablerConfig.hasBlockedBiomeRules()) {
+            List<Holder<Biome>> allowedBiomes = new ArrayList<>();
+            for (Holder<Biome> biome : settingsBuilder.getBiomes()) {
+                if (!DisablerConfig.isBlockedBiome(biome)) {
+                    allowedBiomes.add(biome);
+                }
+            }
+
+            if (allowedBiomes.isEmpty()) {
+                clearStructure(settingsBuilder);
+                return;
+            }
+
+            settingsBuilder.setBiomes(HolderSet.direct(allowedBiomes));
         }
 
         if (!DisablerConfig.hasBlockedMobs()) {
@@ -43,6 +58,13 @@ public enum ConfigDrivenStructureModifier implements StructureModifier {
                 continue;
             }
             overrides.removeSpawns(spawnerData -> DisablerConfig.isBlockedMob(spawnerData.type));
+        }
+    }
+
+    private static void clearStructure(StructureSettingsBuilder settingsBuilder) {
+        settingsBuilder.setBiomes(HolderSet.empty());
+        for (MobCategory category : MobCategory.values()) {
+            settingsBuilder.removeSpawnOverrides(category);
         }
     }
 
