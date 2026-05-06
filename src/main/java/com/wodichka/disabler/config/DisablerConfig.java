@@ -42,13 +42,13 @@ public final class DisablerConfig {
         BLOCKED_MOBS = builder
                 .comment(
                         "List of mob ids that should never appear in the world.",
-                        "Examples: minecraft:zombie, minecraft:creeper")
+                        "Examples: \"minecraft:zombie\", \"minecraft:creeper\"")
                 .defineListAllowEmpty("blocked_mobs", List::of, value -> value instanceof String);
 
         BLOCKED_BIOMES = builder
             .comment(
                 "List of biome ids that should be stripped of mob spawns, carvers, features, and structures.",
-                "Examples: minecraft:plains, minecraft:crimson_forest")
+                "Examples: \"minecraft:plains\", \"minecraft:crimson_forest\"")
             .defineListAllowEmpty("blocked_biomes", List::of, value -> value instanceof String);
         builder.pop();
 
@@ -57,7 +57,7 @@ public final class DisablerConfig {
             .comment(
                 "List of dimension ids that players and entities may not enter.",
                 "Vanilla dimensions also have their biomes and structures stripped from worldgen.",
-                "Examples: minecraft:the_nether, minecraft:the_end")
+                "Examples: \"minecraft:the_nether\", \"minecraft:the_end\"")
             .defineListAllowEmpty("blocked_dimensions", List::of, value -> value instanceof String);
         builder.pop();
 
@@ -65,7 +65,7 @@ public final class DisablerConfig {
         BLOCKED_STRUCTURES = builder
                 .comment(
                         "List of structure ids that should be removed from world generation.",
-                        "Examples: minecraft:village_plains, minecraft:mineshaft")
+                        "Examples: \"minecraft:village_plains\", \"minecraft:mineshaft\"")
                 .defineListAllowEmpty("blocked_structures", List::of, value -> value instanceof String);
         builder.pop();
 
