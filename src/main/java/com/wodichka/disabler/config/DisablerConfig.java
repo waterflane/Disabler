@@ -25,6 +25,7 @@ public final class DisablerConfig {
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_BIOMES;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_DIMENSIONS;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_STRUCTURES;
+    private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_BIOMES;
 
     private static volatile List<String> mobSnapshot = List.of();
     private static volatile Set<ResourceLocation> blockedMobIds = Set.of();
@@ -34,6 +35,8 @@ public final class DisablerConfig {
     private static volatile Set<ResourceKey<Level>> blockedDimensionKeys = Set.of();
     private static volatile List<String> structureSnapshot = List.of();
     private static volatile Set<ResourceLocation> blockedStructureIds = Set.of();
+    private static volatile List<String> biomeSnapshot = List.of();
+    private static volatile Set<ResourceLocation> blockedBiomeIds = Set.of();
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -69,6 +72,14 @@ public final class DisablerConfig {
                 .defineListAllowEmpty("blocked_structures", List::of, value -> value instanceof String);
         builder.pop();
 
+        builder.push("biomes");
+        BLOCKED_BIOMES = builder
+            .comment(
+                "List of biome ids that should be fully removed from world generation.",
+                "Examples: minecraft:plains, minecraft:swamp")
+            .defineListAllowEmpty("blocked_biomes", List::of, value -> value instanceof String);
+        builder.pop();
+
         SPEC = builder.build();
     }
 
@@ -93,6 +104,10 @@ public final class DisablerConfig {
         return !getBlockedStructureIds().isEmpty();
     }
 
+    public static boolean hasBlockedBiomes() {
+        return !getBlockedBiomeIds().isEmpty();
+    }
+
     public static boolean isBlockedMob(EntityType<?> entityType) {
         return getBlockedMobIds().contains(BuiltInRegistries.ENTITY_TYPE.getKey(entityType));
     }
@@ -108,6 +123,10 @@ public final class DisablerConfig {
 
     public static boolean isBlockedStructure(ResourceLocation structureId) {
         return getBlockedStructureIds().contains(structureId);
+    }
+
+    public static boolean isBlockedBiome(ResourceLocation biomeId) {
+        return getBlockedBiomeIds().contains(biomeId);
     }
 
     private static Set<ResourceLocation> getBlockedMobIds() {
@@ -162,10 +181,24 @@ public final class DisablerConfig {
         return blockedStructureIds;
     }
 
+<<<<<<< Updated upstream
     private static boolean isBlockedByVanillaDimension(Holder<Biome> biome) {
         return (isBlockedDimension(Level.OVERWORLD) && biome.is(BiomeTags.IS_OVERWORLD))
                 || (isBlockedDimension(Level.NETHER) && biome.is(BiomeTags.IS_NETHER))
                 || (isBlockedDimension(Level.END) && biome.is(BiomeTags.IS_END));
+=======
+    private static Set<ResourceLocation> getBlockedBiomeIds() {
+        List<String> current = List.copyOf(BLOCKED_BIOMES.get());
+        if (!current.equals(biomeSnapshot)) {
+            synchronized (DisablerConfig.class) {
+                if (!current.equals(biomeSnapshot)) {
+                    blockedBiomeIds = parseLocations(current, "biome");
+                    biomeSnapshot = current;
+                }
+            }
+        }
+        return blockedBiomeIds;
+>>>>>>> Stashed changes
     }
 
     private static Set<ResourceLocation> parseLocations(List<String> rawIds, String kind) {

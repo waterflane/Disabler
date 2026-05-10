@@ -4,12 +4,19 @@ import com.wodichka.disabler.config.DisablerConfig;
 import com.mojang.serialization.MapCodec;
 import java.util.List;
 import net.minecraft.core.Holder;
+<<<<<<< Updated upstream
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.GenerationStep.Decoration;
 import net.neoforged.neoforge.common.world.BiomeGenerationSettingsBuilder;
+=======
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.biome.Biome;
+>>>>>>> Stashed changes
 import net.neoforged.neoforge.common.world.BiomeModifier;
 import net.neoforged.neoforge.common.world.MobSpawnSettingsBuilder;
 import net.neoforged.neoforge.common.world.ModifiableBiomeInfo;
@@ -23,20 +30,32 @@ public enum ConfigDrivenBiomeModifier implements BiomeModifier {
             return;
         }
 
+<<<<<<< Updated upstream
         if (DisablerConfig.isBlockedBiome(biome)) {
             clearBiome(builder);
             return;
         }
 
         if (!DisablerConfig.hasBlockedMobs()) {
+=======
+        ResourceLocation biomeId = biome.unwrapKey().map(ResourceKey::location).orElse(null);
+        boolean blockedBiome = biomeId != null && DisablerConfig.isBlockedBiome(biomeId);
+
+        if (!blockedBiome && !DisablerConfig.hasBlockedMobs()) {
+>>>>>>> Stashed changes
             return;
         }
 
         MobSpawnSettingsBuilder spawnBuilder = builder.getMobSpawnSettings();
         for (MobCategory category : MobCategory.values()) {
             var spawns = spawnBuilder.getSpawner(category);
-            spawns.removeIf(spawnerData -> DisablerConfig.isBlockedMob(spawnerData.type));
+            if (blockedBiome) {
+                spawns.clear();
+            } else {
+                spawns.removeIf(spawnerData -> DisablerConfig.isBlockedMob(spawnerData.type));
+            }
         }
+
     }
 
     private static void clearBiome(ModifiableBiomeInfo.BiomeInfo.Builder builder) {
