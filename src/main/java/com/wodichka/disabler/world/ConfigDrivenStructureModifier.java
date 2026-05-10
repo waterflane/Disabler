@@ -32,10 +32,11 @@ public enum ConfigDrivenStructureModifier implements StructureModifier {
             return;
         }
 
-        if (DisablerConfig.hasBlockedBiomeRules()) {
+        if (DisablerConfig.hasBlockedBiomes()) {
             List<Holder<Biome>> allowedBiomes = new ArrayList<>();
             for (Holder<Biome> biome : settingsBuilder.getBiomes()) {
-                if (!DisablerConfig.isBlockedBiome(biome)) {
+                ResourceLocation biomeId = biome.unwrapKey().map(ResourceKey::location).orElse(null);
+                if (biomeId != null && !DisablerConfig.isBlockedBiome(biomeId)) {
                     allowedBiomes.add(biome);
                 }
             }
