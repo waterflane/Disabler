@@ -19,8 +19,7 @@ A server-side mod that lets server admins block specific mob spawns, biomes, dim
 
 The config file is located at:
 ```
-<world>/serverconfig/disabler-server.toml
-.minecraft/config/disabler-server.toml       #on client
+.minecraft/config/disabler-server.toml
 ```
 
 ```toml
