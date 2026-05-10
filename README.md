@@ -20,33 +20,40 @@ A server-side mod that lets server admins block specific mob spawns, biomes, dim
 The config file is located at:
 ```
 <world>/serverconfig/disabler-server.toml
+.minecraft/config/disabler-server.toml       #on client
 ```
 
 ```toml
 [spawns]
 	#List of mob ids that should never appear in the world.
-	#Examples: minecraft:zombie, minecraft:creeper
-	blocked_mobs = ["minecraft:zombie"]
+	#Examples: "minecraft:zombie", "minecraft:creeper"
+	blocked_mobs = []
 
 [structures]
 	#List of structure ids that should be removed from world generation.
-	#Examples: minecraft:village_plains, minecraft:mineshaft
-	blocked_structures = ["minecraft:village_plains"]
+	#Examples: "minecraft:village_plains", "minecraft:mineshaft"
+	blocked_structures = []
 
 [biomes]
 	#List of biome ids that should be fully removed from world generation.
-	#Examples: minecraft:plains, minecraft:swamp
-	blocked_biomes = ["minecraft:plains"]
+	#Examples: "minecraft:plains", "minecraft:swamp"
+	blocked_biomes = []
+
+[biome_exceptions]
+	#List of biome ids that should NOT be included in the replacement pool.
+	#These biomes have special generation requirements (e.g., mushroom biome on islands).
+	#They will be kept as fallback if no other allowed biomes exist.
+	#By default, minecraft:mushroom_fields is excluded.
+	#Examples: "minecraft:mushroom_fields", "minecraft:deep_dark"
+	exceptions = ["minecraft:mushroom_fields"]
 
 ```
 
-Leave a list empty (`[]`) to disable that feature entirely.
+### Key Points
 
-This configuration will:
-- Block spawning of zombies(removed from spawn lists, cancelled at runtime)
-- Replace plains with allowed alternatives during world generation
-- Prevent village_plains from generating
-- Filter all structures to only generate in non-blocked biomes
+- **Biome Exceptions**: By default, `minecraft:mushroom_fields` is listed in `biome_exceptions`. This prevents it from being used as a replacement for blocked biomes, since mushroom biomes have special generation requirements (e.g., spawning only on islands). You can remove it from this list if you want mushroom biomes to be used as replacements.
+- **All lists can be empty**: Leave any list empty (`[]`) to disable that feature entirely.
+- **Config is written to disk**: When the mod generates the config file for the first time, it includes the default `minecraft:mushroom_fields` in the exceptions list. Edit the file to customize this behavior.
 
 ### Biome Blocking Implementation
 
@@ -60,8 +67,10 @@ When a biome is blocked via the config, the following happens:
 2. **Runtime Biome Replacement** (`MultiNoiseBiomeSourceMixin`):
    - During world generation, when a blocked biome would be selected via `getNoiseBiome()`, it's intercepted
    - The biome is replaced with an **allowed alternative** from the same biome parameter list
+   - Replacement stays inside the current dimension because the candidate pool is collected from that dimension's own `MultiNoiseBiomeSource` (Nether uses only Nether biomes, Overworld uses only Overworld biomes, etc.)
+   - **Biome exceptions**: Biomes listed in `biome_exceptions` config section are **excluded from the replacement pool**. By default, `minecraft:mushroom_fields` is included in this list to prevent it from replacing blocked biomes (since it has special island-only generation requirements).
    - Allowed biomes are collected once and cached in memory for performance
-   - If no allowed biomes exist, the blocked biome is kept as fallback (prevents empty world generation)
+   - If no allowed biomes exist (including exceptions), the blocked biome is kept as fallback (prevents empty world generation)
 
 3. **Structure Filtering** (`ConfigDrivenStructureModifier`):
    - Blocked structures don't generate at all

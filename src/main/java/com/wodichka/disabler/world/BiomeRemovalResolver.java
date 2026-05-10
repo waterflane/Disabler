@@ -4,6 +4,7 @@ import com.mojang.datafixers.util.Pair;
 import com.wodichka.disabler.config.DisablerConfig;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -31,11 +32,16 @@ public final class BiomeRemovalResolver {
         List<Holder<Biome>> allowedBiomes = new ArrayList<>();
         for (Pair<Climate.ParameterPoint, Holder<Biome>> entry : parameterList.values()) {
             Holder<Biome> biome = entry.getSecond();
-            if (!isBlocked(biome)) {
+            ResourceLocation biomeId = biome.unwrapKey().map(ResourceKey::location).orElse(null);
+            if (!isBlocked(biome) && biomeId != null && !getBiomeExceptionIds().contains(biomeId)) {
                 allowedBiomes.add(biome);
             }
         }
         return List.copyOf(allowedBiomes);
+    }
+
+    private static Set<ResourceLocation> getBiomeExceptionIds() {
+        return DisablerConfig.getBiomeExceptionIds();
     }
 
     public static boolean isBlocked(Holder<Biome> biome) {
