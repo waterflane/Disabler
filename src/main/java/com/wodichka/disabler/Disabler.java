@@ -1,6 +1,7 @@
 package com.wodichka.disabler;
 
 import com.wodichka.disabler.config.DisablerConfig;
+import com.wodichka.disabler.event.DimensionTravelBlocker;
 import com.wodichka.disabler.event.MobSpawnBlocker;
 import com.wodichka.disabler.world.DisablerModifiers;
 import net.neoforged.bus.api.IEventBus;
@@ -17,5 +18,6 @@ public class Disabler {
         container.registerConfig(ModConfig.Type.SERVER, DisablerConfig.SPEC);
         DisablerModifiers.register(modBus);
         NeoForge.EVENT_BUS.register(new MobSpawnBlocker());
+        NeoForge.EVENT_BUS.register(new DimensionTravelBlocker());
     }
 }

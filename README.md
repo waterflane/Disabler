@@ -5,6 +5,7 @@ A server-side mod that lets server admins block specific mob spawns, biomes, dim
 - **Block mob spawns** — remove mobs from biome spawn lists and cancel runtime spawn attempts
 - **Block biomes** — strip their mob spawns, carvers, features, and structures from world generation; blocked biomes are replaced with allowed alternatives at runtime
 - **Block structures** — prevent entire structure types from generating and strip their mob spawn overrides
+- **Block dimensions** - cancel travel before entities enter disabled dimensions and prevent Nether portal creation when the Nether is disabled
 - Config-driven: plain text TOML file, no commands or GUI needed
 - Server-side only (no client install required)
 
@@ -37,6 +38,12 @@ The config file is located at:
 	#List of biome ids that should be fully removed from world generation.
 	#Examples: "minecraft:plains", "minecraft:swamp"
 	blocked_biomes = []
+
+[dimensions]
+	#List of dimension ids that entities should not be able to enter.
+	#Dimension travel is cancelled before the entity changes level.
+	#Examples: "minecraft:the_nether", "minecraft:the_end"
+	blocked_dimensions = []
 
 [biome_exceptions]
 	#List of biome ids that should NOT be included in the replacement pool.
@@ -89,6 +96,20 @@ Blocked mobs are handled at two runtime points:
    - **`FinalizeSpawnEvent`**: When a mob spawn attempt is finalized, if the mob type is blocked, the spawn is cancelled
    - **`EntityJoinLevelEvent`**: If a blocked mob somehow spawns (e.g., from NBT data, commands, or creative mode), it's immediately cancelled on server-side only
    - Client-side spawns and disk-loaded entities are not affected
+
+### Dimension Blocking Implementation
+
+Blocked dimensions are handled before the entity changes level:
+
+1. **Dimension Travel Cancellation** (`DimensionTravelBlocker`):
+   - `EntityTravelToDimensionEvent` is cancelled when the target dimension is in `blocked_dimensions`
+   - The entity stays in its current dimension; it is not teleported to spawn as a fallback
+   - Portal cooldown is applied and the current portal process is cleared to avoid rapid repeat attempts
+   - Players receive a short action bar message, throttled so it does not spam
+
+2. **Nether Portal Creation Prevention**:
+   - If `minecraft:the_nether` is blocked, `PortalSpawnEvent` is cancelled
+   - This prevents newly lit Nether portals from forming while still keeping the general travel blocker for existing portals and modded travel paths
 
 ### Structure Blocking Implementation
 

@@ -5,8 +5,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.slf4j.Logger;
 
@@ -19,6 +21,7 @@ public final class DisablerConfig {
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_MOBS;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_STRUCTURES;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_BIOMES;
+    private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_DIMENSIONS;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BIOME_EXCEPTIONS;
 
     private static volatile List<String> mobSnapshot = List.of();
@@ -27,6 +30,8 @@ public final class DisablerConfig {
     private static volatile Set<ResourceLocation> blockedStructureIds = Set.of();
     private static volatile List<String> biomeSnapshot = List.of();
     private static volatile Set<ResourceLocation> blockedBiomeIds = Set.of();
+    private static volatile List<String> dimensionSnapshot = List.of();
+    private static volatile Set<ResourceLocation> blockedDimensionIds = Set.of();
     private static volatile List<String> biomeExceptionSnapshot = List.of();
     private static volatile Set<ResourceLocation> biomeExceptionIds = Set.of();
 
@@ -57,6 +62,15 @@ public final class DisablerConfig {
                 .defineListAllowEmpty("blocked_biomes", List::of, value -> value instanceof String);
         builder.pop();
 
+        builder.push("dimensions");
+        BLOCKED_DIMENSIONS = builder
+                .comment(
+                        "List of dimension ids that entities should not be able to enter.",
+                        "Dimension travel is cancelled before the entity changes level.",
+                        "Examples: \"minecraft:the_nether\", \"minecraft:the_end\"")
+                .defineListAllowEmpty("blocked_dimensions", List::of, value -> value instanceof String);
+        builder.pop();
+
         builder.push("biome_exceptions");
         BIOME_EXCEPTIONS = builder
                 .comment(
@@ -85,6 +99,10 @@ public final class DisablerConfig {
         return !getBlockedBiomeIds().isEmpty();
     }
 
+    public static boolean hasBlockedDimensions() {
+        return !getBlockedDimensionIds().isEmpty();
+    }
+
     public static boolean hasBlockedBiomeRules() {
         return hasBlockedBiomes();
     }
@@ -99,6 +117,14 @@ public final class DisablerConfig {
 
     public static boolean isBlockedBiome(ResourceLocation biomeId) {
         return getBlockedBiomeIds().contains(biomeId);
+    }
+
+    public static boolean isBlockedDimension(ResourceKey<Level> dimensionKey) {
+        return isBlockedDimension(dimensionKey.location());
+    }
+
+    public static boolean isBlockedDimension(ResourceLocation dimensionId) {
+        return getBlockedDimensionIds().contains(dimensionId);
     }
 
     private static Set<ResourceLocation> getBlockedMobIds() {
@@ -138,6 +164,19 @@ public final class DisablerConfig {
             }
         }
         return blockedBiomeIds;
+    }
+
+    private static Set<ResourceLocation> getBlockedDimensionIds() {
+        List<String> current = List.copyOf(BLOCKED_DIMENSIONS.get());
+        if (!current.equals(dimensionSnapshot)) {
+            synchronized (DisablerConfig.class) {
+                if (!current.equals(dimensionSnapshot)) {
+                    blockedDimensionIds = parseLocations(current, "dimension");
+                    dimensionSnapshot = current;
+                }
+            }
+        }
+        return blockedDimensionIds;
     }
 
     public static Set<ResourceLocation> getBiomeExceptionIds() {
