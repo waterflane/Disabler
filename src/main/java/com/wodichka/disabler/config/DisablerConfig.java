@@ -127,7 +127,7 @@ public final class DisablerConfig {
         return blockedStructureIds;
     }
 
-    private static Set<ResourceLocation> getBlockedBiomeIds() {
+    public static Set<ResourceLocation> getBlockedBiomeIds() {
         List<String> current = List.copyOf(BLOCKED_BIOMES.get());
         if (!current.equals(biomeSnapshot)) {
             synchronized (DisablerConfig.class) {

@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(MultiNoiseBiomeSource.class)
+@Mixin(value = MultiNoiseBiomeSource.class, priority = -70000)
 public abstract class MultiNoiseBiomeSourceMixin {
     @Shadow
     @Final
@@ -26,14 +26,27 @@ public abstract class MultiNoiseBiomeSourceMixin {
     @Unique
     private volatile List<Holder<Biome>> disabler$allowedBiomes;
 
+    @Inject(method = "getNoiseBiome", at = @At("HEAD"), cancellable = true, order = 2000)
+    private void disabler$replaceCancelledBlockedBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler, CallbackInfoReturnable<Holder<Biome>> cir) {
+        if (!cir.isCancelled()) {
+            return;
+        }
+        disabler$replaceBlockedReturnValue(cir);
+    }
+
     @Inject(method = "getNoiseBiome", at = @At("RETURN"), cancellable = true)
     private void disabler$replaceBlockedBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler, CallbackInfoReturnable<Holder<Biome>> cir) {
+        disabler$replaceBlockedReturnValue(cir);
+    }
+
+    @Unique
+    private void disabler$replaceBlockedReturnValue(CallbackInfoReturnable<Holder<Biome>> cir) {
         if (!DisablerConfig.hasBlockedBiomes()) {
             return;
         }
 
         Holder<Biome> selectedBiome = cir.getReturnValue();
-        if (!BiomeRemovalResolver.isBlocked(selectedBiome)) {
+        if (selectedBiome == null || !BiomeRemovalResolver.isBlocked(selectedBiome)) {
             return;
         }
 
