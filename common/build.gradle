@@ -1,0 +1,13 @@
+plugins {
+    id 'architectury-plugin'
+    id 'java'
+    id 'dev.architectury.loom'
+}
+
+architectury {
+    common('fabric', 'forge', 'neoforge')
+}
+
+dependencies {
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+}

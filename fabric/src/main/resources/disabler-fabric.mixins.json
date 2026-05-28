@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.wodichka.disabler.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BaseFireBlockMixin",
+    "ChunkGeneratorMixin",
+    "EntityDimensionMixin",
+    "ServerLevelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
