@@ -1,15 +1,15 @@
 package com.wodichka.disabler.world;
 
+import com.mojang.serialization.Codec;
 import com.wodichka.disabler.config.DisablerConfig;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.biome.Biome;
-import net.neoforged.neoforge.common.world.BiomeModifier;
-import net.neoforged.neoforge.common.world.MobSpawnSettingsBuilder;
-import net.neoforged.neoforge.common.world.ModifiableBiomeInfo;
+import net.minecraftforge.common.world.BiomeModifier;
+import net.minecraftforge.common.world.MobSpawnSettingsBuilder;
+import net.minecraftforge.common.world.ModifiableBiomeInfo;
 
 public enum ConfigDrivenBiomeModifier implements BiomeModifier {
     INSTANCE;
@@ -40,7 +40,7 @@ public enum ConfigDrivenBiomeModifier implements BiomeModifier {
     }
 
     @Override
-    public MapCodec<? extends BiomeModifier> codec() {
+    public Codec<? extends BiomeModifier> codec() {
         return DisablerModifiers.CONFIG_SPAWN_BLOCKER.get();
     }
 }

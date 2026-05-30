@@ -28,7 +28,6 @@ public final class DimensionTravelBlockerForge {
         Entity entity = event.getEntity();
         event.setCanceled(true);
         entity.setPortalCooldown(Math.max(entity.getPortalCooldown(), BLOCKED_TRAVEL_COOLDOWN_TICKS));
-        entity.portalProcess = null;
 
         if (entity instanceof ServerPlayer player) {
             warnPlayer(player, event.getDimension().location());

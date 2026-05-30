@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "${forge_loader_version_range}"
+loaderVersion = "${loader_version_range}"
 license = "${mod_license}"
 
 [[mods]]
@@ -14,12 +14,12 @@ description = '''${mod_description}'''
 config = "disabler-common.mixins.json"
 
 [[mixins]]
-config = "disabler-forge.mixins.json"
+config = "disabler-neoforge.mixins.json"
 
 [[dependencies."${mod_id}"]]
 modId = "forge"
 mandatory = true
-versionRange = "${forge_loader_version_range}"
+versionRange = "${loader_version_range}"
 ordering = "NONE"
 side = "BOTH"
 

@@ -9,9 +9,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent;
-import net.neoforged.neoforge.event.level.BlockEvent;
+import net.minecraftforge.event.entity.EntityTravelToDimensionEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public final class DimensionTravelBlocker {
     private static final int PLAYER_WARNING_COOLDOWN_TICKS = 40;
@@ -28,7 +28,6 @@ public final class DimensionTravelBlocker {
         Entity entity = event.getEntity();
         event.setCanceled(true);
         entity.setPortalCooldown(Math.max(entity.getPortalCooldown(), BLOCKED_TRAVEL_COOLDOWN_TICKS));
-        entity.portalProcess = null;
 
         if (entity instanceof ServerPlayer player) {
             warnPlayer(player, event.getDimension().location());

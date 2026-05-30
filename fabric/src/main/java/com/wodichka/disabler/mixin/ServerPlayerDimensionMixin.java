@@ -14,8 +14,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(Entity.class)
-public abstract class EntityDimensionMixin {
+@Mixin(ServerPlayer.class)
+public abstract class ServerPlayerDimensionMixin {
     @Unique
     private static final int DISABLER$PLAYER_WARNING_COOLDOWN_TICKS = 40;
 
@@ -26,18 +26,14 @@ public abstract class EntityDimensionMixin {
     private static final Map<UUID, Long> DISABLER$LAST_WARNING_GAME_TIME = new HashMap<>();
 
     @Inject(method = "changeDimension", at = @At("HEAD"), cancellable = true)
-    private void disabler$blockDimensionTravel(ServerLevel destination, CallbackInfoReturnable<Entity> cir) {
+    private void disabler$blockPlayerDimensionTravel(ServerLevel destination, CallbackInfoReturnable<Entity> cir) {
         if (!DisablerConfig.isBlockedDimension(destination.dimension())) {
             return;
         }
 
-        Entity entity = (Entity) (Object) this;
-        entity.setPortalCooldown(Math.max(entity.getPortalCooldown(), DISABLER$BLOCKED_TRAVEL_COOLDOWN_TICKS));
-
-        if (entity instanceof ServerPlayer player) {
-            disabler$warnPlayer(player, destination.dimension().location().toString());
-        }
-
+        ServerPlayer player = (ServerPlayer) (Object) this;
+        player.setPortalCooldown(Math.max(player.getPortalCooldown(), DISABLER$BLOCKED_TRAVEL_COOLDOWN_TICKS));
+        disabler$warnPlayer(player, destination.dimension().location().toString());
         cir.setReturnValue(null);
     }
 

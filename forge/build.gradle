@@ -16,7 +16,7 @@ dependencies {
 jar {
     manifest {
         attributes([
-                'MixinConfigs': 'disabler-common.mixins.json'
+                'MixinConfigs': 'disabler-common.mixins.json,disabler-forge.mixins.json'
         ])
     }
 }
@@ -44,19 +44,6 @@ processResources {
         expand inputs.properties
     }
 }
-
-remapJar {
-    enabled = false
-}
-
-tasks.register('copyForgeJar', Copy) {
-    dependsOn jar
-    from jar.archiveFile
-    into layout.buildDirectory.dir('libs')
-    rename { "${base.archivesName.get()}-${project.version}.jar" }
-}
-
-assemble.dependsOn copyForgeJar
 
 sourcesJar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

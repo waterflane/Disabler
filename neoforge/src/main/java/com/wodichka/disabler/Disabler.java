@@ -4,20 +4,18 @@ import com.wodichka.disabler.config.DisablerConfig;
 import com.wodichka.disabler.event.DimensionTravelBlocker;
 import com.wodichka.disabler.event.MobSpawnBlocker;
 import com.wodichka.disabler.world.DisablerModifiers;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.loading.FMLPaths;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 @Mod(Disabler.MODID)
 public class Disabler {
     public static final String MODID = "disabler";
 
-    public Disabler(IEventBus modBus, ModContainer container) {
+    public Disabler() {
         DisablerConfig.load(FMLPaths.CONFIGDIR.get());
-        DisablerModifiers.register(modBus);
-        NeoForge.EVENT_BUS.register(new MobSpawnBlocker());
-        NeoForge.EVENT_BUS.register(new DimensionTravelBlocker());
+        DisablerModifiers.register();
+        MinecraftForge.EVENT_BUS.register(new MobSpawnBlocker());
+        MinecraftForge.EVENT_BUS.register(new DimensionTravelBlocker());
     }
 }

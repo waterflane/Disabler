@@ -1,7 +1,7 @@
 package com.wodichka.disabler.world;
 
+import com.mojang.serialization.Codec;
 import com.wodichka.disabler.config.DisablerConfig;
-import com.mojang.serialization.MapCodec;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.Holder;
@@ -11,9 +11,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.structure.Structure;
-import net.neoforged.neoforge.common.world.ModifiableStructureInfo;
-import net.neoforged.neoforge.common.world.StructureModifier;
-import net.neoforged.neoforge.common.world.StructureSettingsBuilder;
+import net.minecraftforge.common.world.ModifiableStructureInfo;
+import net.minecraftforge.common.world.StructureModifier;
+import net.minecraftforge.common.world.StructureSettingsBuilder;
 
 public enum ConfigDrivenStructureModifier implements StructureModifier {
     INSTANCE;
@@ -58,19 +58,21 @@ public enum ConfigDrivenStructureModifier implements StructureModifier {
             if (overrides == null || overrides.getSpawns().isEmpty()) {
                 continue;
             }
-            overrides.removeSpawns(spawnerData -> DisablerConfig.isBlockedMob(spawnerData.type));
+            List.copyOf(overrides.getSpawns()).stream()
+                    .filter(spawnerData -> DisablerConfig.isBlockedMob(spawnerData.type))
+                    .forEach(overrides::removeSpawn);
         }
     }
 
     private static void clearStructure(StructureSettingsBuilder settingsBuilder) {
-        settingsBuilder.setBiomes(HolderSet.empty());
+        settingsBuilder.setBiomes(HolderSet.direct(List.of()));
         for (MobCategory category : MobCategory.values()) {
             settingsBuilder.removeSpawnOverrides(category);
         }
     }
 
     @Override
-    public MapCodec<? extends StructureModifier> codec() {
+    public Codec<? extends StructureModifier> codec() {
         return DisablerModifiers.CONFIG_STRUCTURE_BLOCKER.get();
     }
 }

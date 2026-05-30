@@ -1,6 +1,6 @@
 package com.wodichka.disabler.world;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import com.wodichka.disabler.config.DisablerConfig;
 import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
@@ -39,7 +39,7 @@ public enum ConfigDrivenBiomeModifierForge implements BiomeModifier {
     }
 
     @Override
-    public MapCodec<? extends BiomeModifier> codec() {
+    public Codec<? extends BiomeModifier> codec() {
         return DisablerModifiersForge.CONFIG_SPAWN_BLOCKER.get();
     }
 }

@@ -1,6 +1,6 @@
 package com.wodichka.disabler.world;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import com.wodichka.disabler.DisablerForge;
 import net.minecraftforge.common.world.BiomeModifier;
 import net.minecraftforge.common.world.StructureModifier;
@@ -11,11 +11,11 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 
 public final class DisablerModifiersForge {
-    private static final DeferredRegister<MapCodec<? extends BiomeModifier>> BIOME_MODIFIER_SERIALIZERS = DeferredRegister.create(ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, DisablerForge.MODID);
-    private static final DeferredRegister<MapCodec<? extends StructureModifier>> STRUCTURE_MODIFIER_SERIALIZERS = DeferredRegister.create(ForgeRegistries.Keys.STRUCTURE_MODIFIER_SERIALIZERS, DisablerForge.MODID);
+    private static final DeferredRegister<Codec<? extends BiomeModifier>> BIOME_MODIFIER_SERIALIZERS = DeferredRegister.create(ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, DisablerForge.MODID);
+    private static final DeferredRegister<Codec<? extends StructureModifier>> STRUCTURE_MODIFIER_SERIALIZERS = DeferredRegister.create(ForgeRegistries.Keys.STRUCTURE_MODIFIER_SERIALIZERS, DisablerForge.MODID);
 
-    public static final RegistryObject<MapCodec<ConfigDrivenBiomeModifierForge>> CONFIG_SPAWN_BLOCKER = BIOME_MODIFIER_SERIALIZERS.register("config_spawn_blocker", () -> MapCodec.unit(ConfigDrivenBiomeModifierForge.INSTANCE));
-    public static final RegistryObject<MapCodec<ConfigDrivenStructureModifierForge>> CONFIG_STRUCTURE_BLOCKER = STRUCTURE_MODIFIER_SERIALIZERS.register("config_structure_blocker", () -> MapCodec.unit(ConfigDrivenStructureModifierForge.INSTANCE));
+    public static final RegistryObject<Codec<ConfigDrivenBiomeModifierForge>> CONFIG_SPAWN_BLOCKER = BIOME_MODIFIER_SERIALIZERS.register("config_spawn_blocker", () -> Codec.unit(ConfigDrivenBiomeModifierForge.INSTANCE));
+    public static final RegistryObject<Codec<ConfigDrivenStructureModifierForge>> CONFIG_STRUCTURE_BLOCKER = STRUCTURE_MODIFIER_SERIALIZERS.register("config_structure_blocker", () -> Codec.unit(ConfigDrivenStructureModifierForge.INSTANCE));
 
     private DisablerModifiersForge() {}
 

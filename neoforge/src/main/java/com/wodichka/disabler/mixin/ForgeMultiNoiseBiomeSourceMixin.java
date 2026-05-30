@@ -17,15 +17,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = MultiNoiseBiomeSource.class, priority = -70000)
-public abstract class MultiNoiseBiomeSourceMixin {
-    @Shadow
+public abstract class ForgeMultiNoiseBiomeSourceMixin {
+    @Shadow(remap = false)
     @Final
-    private Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters;
+    private Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> f_48435_;
 
     @Unique
     private volatile Climate.ParameterList<Holder<Biome>> disabler$allowedBiomes;
 
-    @Inject(method = "getNoiseBiome(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "m_203407_(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;", at = @At("HEAD"), cancellable = true, remap = false)
     private void disabler$replaceCancelledBlockedBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler, CallbackInfoReturnable<Holder<Biome>> cir) {
         if (!cir.isCancelled() || !DisablerConfig.hasBlockedBiomes()) {
             return;
@@ -34,7 +34,7 @@ public abstract class MultiNoiseBiomeSourceMixin {
         disabler$replaceBlockedReturnValue(targetPoint, cir);
     }
 
-    @Inject(method = "getNoiseBiome(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "m_203407_(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;", at = @At("RETURN"), cancellable = true, remap = false)
     private void disabler$replaceBlockedBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler, CallbackInfoReturnable<Holder<Biome>> cir) {
         if (!DisablerConfig.hasBlockedBiomes()) {
             return;
@@ -43,7 +43,7 @@ public abstract class MultiNoiseBiomeSourceMixin {
         disabler$replaceBlockedReturnValue(targetPoint, cir);
     }
 
-    @Inject(method = "getNoiseBiome(Lnet/minecraft/world/level/biome/Climate$TargetPoint;)Lnet/minecraft/core/Holder;", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "m_204269_(Lnet/minecraft/world/level/biome/Climate$TargetPoint;)Lnet/minecraft/core/Holder;", at = @At("RETURN"), cancellable = true, remap = false)
     private void disabler$replaceBlockedBiomeFromTarget(Climate.TargetPoint targetPoint, CallbackInfoReturnable<Holder<Biome>> cir) {
         disabler$replaceBlockedReturnValue(targetPoint, cir);
     }
@@ -69,7 +69,7 @@ public abstract class MultiNoiseBiomeSourceMixin {
     private Climate.ParameterList<Holder<Biome>> disabler$getAllowedBiomes() {
         Climate.ParameterList<Holder<Biome>> cached = this.disabler$allowedBiomes;
         if (cached == null) {
-            Climate.ParameterList<Holder<Biome>> parameterList = this.parameters.map(
+            Climate.ParameterList<Holder<Biome>> parameterList = this.f_48435_.map(
                     directParameters -> directParameters,
                     presetParameters -> presetParameters.value().parameters());
             cached = BiomeRemovalResolver.collectAllowedBiomeParameters(parameterList);

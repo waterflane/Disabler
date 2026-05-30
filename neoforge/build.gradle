@@ -6,11 +6,19 @@ plugins {
 
 architectury {
     platformSetupLoomIde()
-    neoForge()
+    forge()
 }
 
 dependencies {
-    neoForge "net.neoforged:neoforge:${neo_version}"
+    forge "net.neoforged:forge:${neo_version}"
+}
+
+jar {
+    manifest {
+        attributes([
+                'MixinConfigs': 'disabler-common.mixins.json,disabler-neoforge.mixins.json'
+        ])
+    }
 }
 
 sourceSets {
@@ -24,8 +32,6 @@ processResources {
     inputs.properties(
             minecraft_version: minecraft_version,
             minecraft_version_range: minecraft_version_range,
-            neo_version: neo_version,
-            neo_version_range: neo_version_range,
             loader_version_range: loader_version_range,
             mod_id: mod_id,
             mod_name: mod_name,
@@ -35,7 +41,7 @@ processResources {
             mod_description: mod_description
     )
     from 'src/main/templates'
-    filesMatching('META-INF/neoforge.mods.toml') {
+    filesMatching('META-INF/mods.toml') {
         expand inputs.properties
     }
 }

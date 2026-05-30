@@ -1,6 +1,6 @@
 package com.wodichka.disabler.world;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import com.wodichka.disabler.config.DisablerConfig;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,14 +65,14 @@ public enum ConfigDrivenStructureModifierForge implements StructureModifier {
     }
 
     private static void clearStructure(StructureSettingsBuilder settingsBuilder) {
-        settingsBuilder.setBiomes(HolderSet.empty());
+        settingsBuilder.setBiomes(HolderSet.direct(List.of()));
         for (MobCategory category : MobCategory.values()) {
             settingsBuilder.removeSpawnOverrides(category);
         }
     }
 
     @Override
-    public MapCodec<? extends StructureModifier> codec() {
+    public Codec<? extends StructureModifier> codec() {
         return DisablerModifiersForge.CONFIG_STRUCTURE_BLOCKER.get();
     }
 }

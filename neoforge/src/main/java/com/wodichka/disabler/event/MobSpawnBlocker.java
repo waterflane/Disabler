@@ -2,13 +2,13 @@ package com.wodichka.disabler.event;
 
 import com.wodichka.disabler.config.DisablerConfig;
 import net.minecraft.world.entity.Mob;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
-import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.living.MobSpawnEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public final class MobSpawnBlocker {
     @SubscribeEvent
-    public void onFinalizeSpawn(FinalizeSpawnEvent event) {
+    public void onFinalizeSpawn(MobSpawnEvent.FinalizeSpawn event) {
         if (DisablerConfig.isBlockedMob(event.getEntity().getType())) {
             event.setSpawnCancelled(true);
         }
