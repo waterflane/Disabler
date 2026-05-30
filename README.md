@@ -2,7 +2,7 @@
 
 Disabler is a server-side Minecraft mod for blocking mob spawns, structures, biomes, and dimensions through one simple TOML config.
 
-Version 1.2 is organized as a multi-loader project for Minecraft 1.21.1:
+Version 1.2 is organized as a multi-loader project for Minecraft 1.21.1, 1.20.1:
 
 | Loader | Status |
 |--------|--------|
