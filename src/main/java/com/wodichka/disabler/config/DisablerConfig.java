@@ -7,6 +7,7 @@ import java.util.Set;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.slf4j.Logger;
 
@@ -19,6 +20,7 @@ public final class DisablerConfig {
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_MOBS;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_STRUCTURES;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_BIOMES;
+    private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_ITEMS;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> BIOME_EXCEPTIONS;
 
     private static volatile List<String> mobSnapshot = List.of();
@@ -27,6 +29,8 @@ public final class DisablerConfig {
     private static volatile Set<ResourceLocation> blockedStructureIds = Set.of();
     private static volatile List<String> biomeSnapshot = List.of();
     private static volatile Set<ResourceLocation> blockedBiomeIds = Set.of();
+    private static volatile List<String> itemSnapshot = List.of();
+    private static volatile Set<ResourceLocation> blockedItemIds = Set.of();
     private static volatile List<String> biomeExceptionSnapshot = List.of();
     private static volatile Set<ResourceLocation> biomeExceptionIds = Set.of();
 
@@ -57,6 +61,15 @@ public final class DisablerConfig {
                 .defineListAllowEmpty("blocked_biomes", List::of, value -> value instanceof String);
         builder.pop();
 
+        builder.push("items");
+        BLOCKED_ITEMS = builder
+                .comment(
+                        "List of item ids that players should not be able to keep or receive from loot tables.",
+                        "Blocked items are removed from generated loot, pickups, player inventories, ender chests, and open containers.",
+                        "Examples: \"minecraft:diamond\", \"minecraft:elytra\"")
+                .defineListAllowEmpty("blocked_items", List::of, value -> value instanceof String);
+        builder.pop();
+
         builder.push("biome_exceptions");
         BIOME_EXCEPTIONS = builder
                 .comment(
@@ -85,6 +98,10 @@ public final class DisablerConfig {
         return !getBlockedBiomeIds().isEmpty();
     }
 
+    public static boolean hasBlockedItems() {
+        return !getBlockedItemIds().isEmpty();
+    }
+
     public static boolean hasBlockedBiomeRules() {
         return hasBlockedBiomes();
     }
@@ -99,6 +116,10 @@ public final class DisablerConfig {
 
     public static boolean isBlockedBiome(ResourceLocation biomeId) {
         return getBlockedBiomeIds().contains(biomeId);
+    }
+
+    public static boolean isBlockedItem(Item item) {
+        return getBlockedItemIds().contains(BuiltInRegistries.ITEM.getKey(item));
     }
 
     private static Set<ResourceLocation> getBlockedMobIds() {
@@ -138,6 +159,19 @@ public final class DisablerConfig {
             }
         }
         return blockedBiomeIds;
+    }
+
+    private static Set<ResourceLocation> getBlockedItemIds() {
+        List<String> current = List.copyOf(BLOCKED_ITEMS.get());
+        if (!current.equals(itemSnapshot)) {
+            synchronized (DisablerConfig.class) {
+                if (!current.equals(itemSnapshot)) {
+                    blockedItemIds = parseLocations(current, "item");
+                    itemSnapshot = current;
+                }
+            }
+        }
+        return blockedItemIds;
     }
 
     public static Set<ResourceLocation> getBiomeExceptionIds() {

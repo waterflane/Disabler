@@ -1,6 +1,7 @@
 package com.wodichka.disabler;
 
 import com.wodichka.disabler.config.DisablerConfig;
+import com.wodichka.disabler.event.ItemBlocker;
 import com.wodichka.disabler.event.MobSpawnBlocker;
 import com.wodichka.disabler.world.DisablerModifiers;
 import net.neoforged.bus.api.IEventBus;
@@ -16,6 +17,7 @@ public class Disabler {
     public Disabler(IEventBus modBus, ModContainer container) {
         container.registerConfig(ModConfig.Type.SERVER, DisablerConfig.SPEC);
         DisablerModifiers.register(modBus);
+        NeoForge.EVENT_BUS.register(new ItemBlocker());
         NeoForge.EVENT_BUS.register(new MobSpawnBlocker());
     }
 }

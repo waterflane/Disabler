@@ -5,6 +5,7 @@ A server-side mod that lets server admins block specific mob spawns, biomes, dim
 - **Block mob spawns** — remove mobs from biome spawn lists and cancel runtime spawn attempts
 - **Block biomes** — strip their mob spawns, carvers, features, and structures from world generation; blocked biomes are replaced with allowed alternatives at runtime
 - **Block structures** — prevent entire structure types from generating and strip their mob spawn overrides
+- **Block items** — remove configured items from generated loot, pickups, player inventories, ender chests, and open containers
 - Config-driven: plain text TOML file, no commands or GUI needed
 - Server-side only (no client install required)
 
@@ -37,6 +38,12 @@ The config file is located at:
 	#List of biome ids that should be fully removed from world generation.
 	#Examples: "minecraft:plains", "minecraft:swamp"
 	blocked_biomes = []
+
+[items]
+	#List of item ids that players should not be able to keep or receive from loot tables.
+	#Blocked items are removed from generated loot, pickups, player inventories, ender chests, and open containers.
+	#Examples: "minecraft:diamond", "minecraft:elytra"
+	blocked_items = []
 
 [biome_exceptions]
 	#List of biome ids that should NOT be included in the replacement pool.
@@ -90,6 +97,23 @@ Blocked mobs are handled at two runtime points:
    - **`EntityJoinLevelEvent`**: If a blocked mob somehow spawns (e.g., from NBT data, commands, or creative mode), it's immediately cancelled on server-side only
    - Client-side spawns and disk-loaded entities are not affected
 
+### Item Blocking Implementation
+
+Blocked items are handled without scanning every player every tick:
+
+1. **Loot Table Filtering** (`ConfigDrivenLootModifier`):
+   - A global NeoForge loot modifier removes blocked items from generated loot lists
+   - This applies to vanilla, modded, and datapack loot tables
+
+2. **Runtime Item Prevention** (`ItemBlocker`):
+   - Ground item entities with blocked items are cancelled before joining the level
+   - Blocked item pickups are denied before the stack enters the player inventory
+   - Tossed blocked items are removed instead of staying in the world
+
+3. **Inventory Cleanup** (`BlockedItemCleaner`):
+   - Player inventories, armor, offhand, ender chests, carried cursor stacks, and open containers are cleaned on login, respawn, dimension change, container open/close, crafting, and smelting
+   - A lightweight safety sweep runs once every 100 server ticks (5 seconds), not every tick
+
 ### Structure Blocking Implementation
 
 Blocked structures are handled as follows:
@@ -113,6 +137,7 @@ Blocked structures are handled as follows:
 - **Biomes**: Use `/locate biome <tab>` in-game or inspect the biome ids in a datapack / registry dump.
 - **Dimensions**: Vanilla examples are `minecraft:overworld`, `minecraft:the_nether`, and `minecraft:the_end`; modded dimensions use their own namespace and path.
 - **Structures**: Use `/locate structure <tab>` in-game or check the [Minecraft Wiki – Generated structures](https://minecraft.wiki/w/Generated_structures).
+- **Items**: Use `/give <player> <tab>` in-game or inspect item ids in JEI/EMI/registry dumps.
 
 ## Building from Source
 
