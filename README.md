@@ -6,7 +6,7 @@ A server-side mod that lets server admins block specific mob spawns, biomes, dim
 - **Block biomes** — strip their mob spawns, carvers, features, and structures from world generation; blocked biomes are replaced with allowed alternatives at runtime
 - **Block structures** — prevent entire structure types from generating and strip their mob spawn overrides
 - **Block items** — remove configured items from generated loot, pickups, player inventories, ender chests, and open containers
-- Config-driven: plain text TOML file, no commands or GUI needed
+- Config-driven: plain JSON file, no commands or GUI needed
 - Server-side only (no client install required)
 
 ## Requirements
@@ -20,46 +20,27 @@ A server-side mod that lets server admins block specific mob spawns, biomes, dim
 
 The config file is located at:
 ```
-.minecraft/config/disabler-server.toml
+.minecraft/config/disabler-server.json
 ```
 
-```toml
-[spawns]
-	#List of mob ids that should never appear in the world.
-	#Examples: "minecraft:zombie", "minecraft:creeper"
-	blocked_mobs = []
-
-[structures]
-	#List of structure ids that should be removed from world generation.
-	#Examples: "minecraft:village_plains", "minecraft:mineshaft"
-	blocked_structures = []
-
-[biomes]
-	#List of biome ids that should be fully removed from world generation.
-	#Examples: "minecraft:plains", "minecraft:swamp"
-	blocked_biomes = []
-
-[items]
-	#List of item ids that players should not be able to keep or receive from loot tables.
-	#Blocked items are removed from generated loot, pickups, player inventories, ender chests, and open containers.
-	#Examples: "minecraft:diamond", "minecraft:elytra"
-	blocked_items = []
-
-[biome_exceptions]
-	#List of biome ids that should NOT be included in the replacement pool.
-	#These biomes have special generation requirements (e.g., mushroom biome on islands).
-	#They will be kept as fallback if no other allowed biomes exist.
-	#By default, minecraft:mushroom_fields is excluded.
-	#Examples: "minecraft:mushroom_fields", "minecraft:deep_dark"
-	exceptions = ["minecraft:mushroom_fields"]
-
+```json
+{
+  "blocked_mobs": [],
+  "blocked_structures": [],
+  "blocked_biomes": [],
+  "blocked_items": [],
+  "biome_exceptions": [
+    "minecraft:mushroom_fields"
+  ]
+}
 ```
 
 ### Key Points
 
 - **Biome Exceptions**: By default, `minecraft:mushroom_fields` is listed in `biome_exceptions`. This prevents it from being used as a replacement for blocked biomes, since mushroom biomes have special generation requirements (e.g., spawning only on islands). You can remove it from this list if you want mushroom biomes to be used as replacements.
 - **All lists can be empty**: Leave any list empty (`[]`) to disable that feature entirely.
-- **Config is written to disk**: When the mod generates the config file for the first time, it includes the default `minecraft:mushroom_fields` in the exceptions list. Edit the file to customize this behavior.
+- **Config is written to disk**: When the mod generates `disabler-server.json` for the first time, it includes the default `minecraft:mushroom_fields` in the exceptions list. If an old `disabler-server.toml` exists and JSON does not, known list keys are migrated into the new JSON file.
+- **JSON reload timing**: The config is loaded during mod initialization and reloaded when the server/world is about to start.
 
 ### Biome Blocking Implementation
 

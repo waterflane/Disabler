@@ -1,105 +1,81 @@
 package com.wodichka.disabler.config;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
 public final class DisablerConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final List<String> DEFAULT_BIOME_EXCEPTIONS = List.of("minecraft:mushroom_fields");
+    private static final String CONFIG_FILE_NAME = "disabler-server.json";
+    private static final String LEGACY_CONFIG_FILE_NAME = "disabler-server.toml";
+    private static final Pattern LEGACY_TOML_STRING_PATTERN = Pattern.compile("\"([^\"]+)\"");
 
-    public static final ModConfigSpec SPEC;
-
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_MOBS;
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_STRUCTURES;
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_BIOMES;
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> BLOCKED_ITEMS;
-    private static final ModConfigSpec.ConfigValue<List<? extends String>> BIOME_EXCEPTIONS;
-
-    private static volatile List<String> mobSnapshot = List.of();
-    private static volatile Set<ResourceLocation> blockedMobIds = Set.of();
-    private static volatile List<String> structureSnapshot = List.of();
-    private static volatile Set<ResourceLocation> blockedStructureIds = Set.of();
-    private static volatile List<String> biomeSnapshot = List.of();
-    private static volatile Set<ResourceLocation> blockedBiomeIds = Set.of();
-    private static volatile List<String> itemSnapshot = List.of();
-    private static volatile Set<ResourceLocation> blockedItemIds = Set.of();
-    private static volatile List<String> biomeExceptionSnapshot = List.of();
-    private static volatile Set<ResourceLocation> biomeExceptionIds = Set.of();
-
-    static {
-        ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
-
-        builder.push("spawns");
-        BLOCKED_MOBS = builder
-                .comment(
-                        "List of mob ids that should never appear in the world.",
-                        "Examples: \"minecraft:zombie\", \"minecraft:creeper\"")
-                .defineListAllowEmpty("blocked_mobs", List::of, value -> value instanceof String);
-        builder.pop();
-
-        builder.push("structures");
-        BLOCKED_STRUCTURES = builder
-                .comment(
-                        "List of structure ids that should be removed from world generation.",
-                        "Examples: \"minecraft:village_plains\", \"minecraft:mineshaft\"")
-                .defineListAllowEmpty("blocked_structures", List::of, value -> value instanceof String);
-        builder.pop();
-
-        builder.push("biomes");
-        BLOCKED_BIOMES = builder
-                .comment(
-                        "List of biome ids that should be fully removed from world generation.",
-                        "Examples: \"minecraft:plains\", \"minecraft:swamp\"")
-                .defineListAllowEmpty("blocked_biomes", List::of, value -> value instanceof String);
-        builder.pop();
-
-        builder.push("items");
-        BLOCKED_ITEMS = builder
-                .comment(
-                        "List of item ids that players should not be able to keep or receive from loot tables.",
-                        "Blocked items are removed from generated loot, pickups, player inventories, ender chests, and open containers.",
-                        "Examples: \"minecraft:diamond\", \"minecraft:elytra\"")
-                .defineListAllowEmpty("blocked_items", List::of, value -> value instanceof String);
-        builder.pop();
-
-        builder.push("biome_exceptions");
-        BIOME_EXCEPTIONS = builder
-                .comment(
-                        "List of biome ids that should NOT be included in the replacement pool.",
-                        "These biomes have special generation requirements (e.g., mushroom biome on islands).",
-                        "They will be kept as fallback if no other allowed biomes exist.",
-                        "By default, minecraft:mushroom_fields is excluded.",
-                        "Examples: \"minecraft:mushroom_fields\", \"minecraft:deep_dark\"")
-                .defineList("exceptions", DEFAULT_BIOME_EXCEPTIONS, value -> value instanceof String);
-        builder.pop();
-
-        SPEC = builder.build();
-    }
+    private static volatile Snapshot snapshot = Snapshot.defaults();
 
     private DisablerConfig() {}
 
+    public static void load() {
+        Path configPath = getConfigPath();
+
+        try {
+            ensureConfigExists(configPath);
+
+            try (Reader reader = Files.newBufferedReader(configPath)) {
+                JsonElement parsed = JsonParser.parseReader(reader);
+                if (!parsed.isJsonObject()) {
+                    LOGGER.warn("Disabler config '{}' must contain a JSON object. Keeping previous config.", configPath);
+                    return;
+                }
+
+                snapshot = parseSnapshot(parsed.getAsJsonObject());
+                LOGGER.info("Loaded Disabler JSON config from {}", configPath);
+            }
+        } catch (Exception exception) {
+            LOGGER.error("Failed to load Disabler JSON config '{}'. Keeping previous config.", configPath, exception);
+        }
+    }
+
+    public static Path getConfigPath() {
+        return FMLPaths.CONFIGDIR.get().resolve(CONFIG_FILE_NAME);
+    }
+
     public static boolean hasBlockedMobs() {
-        return !getBlockedMobIds().isEmpty();
+        return !snapshot.blockedMobIds().isEmpty();
     }
 
     public static boolean hasBlockedStructures() {
-        return !getBlockedStructureIds().isEmpty();
+        return !snapshot.blockedStructureIds().isEmpty();
     }
 
     public static boolean hasBlockedBiomes() {
-        return !getBlockedBiomeIds().isEmpty();
+        return !snapshot.blockedBiomeIds().isEmpty();
     }
 
     public static boolean hasBlockedItems() {
-        return !getBlockedItemIds().isEmpty();
+        return !snapshot.blockedItemIds().isEmpty();
     }
 
     public static boolean hasBlockedBiomeRules() {
@@ -107,84 +83,158 @@ public final class DisablerConfig {
     }
 
     public static boolean isBlockedMob(EntityType<?> entityType) {
-        return getBlockedMobIds().contains(BuiltInRegistries.ENTITY_TYPE.getKey(entityType));
+        return snapshot.blockedMobIds().contains(BuiltInRegistries.ENTITY_TYPE.getKey(entityType));
     }
 
     public static boolean isBlockedStructure(ResourceLocation structureId) {
-        return getBlockedStructureIds().contains(structureId);
+        return snapshot.blockedStructureIds().contains(structureId);
     }
 
     public static boolean isBlockedBiome(ResourceLocation biomeId) {
-        return getBlockedBiomeIds().contains(biomeId);
+        return snapshot.blockedBiomeIds().contains(biomeId);
     }
 
     public static boolean isBlockedItem(Item item) {
-        return getBlockedItemIds().contains(BuiltInRegistries.ITEM.getKey(item));
-    }
-
-    private static Set<ResourceLocation> getBlockedMobIds() {
-        List<String> current = List.copyOf(BLOCKED_MOBS.get());
-        if (!current.equals(mobSnapshot)) {
-            synchronized (DisablerConfig.class) {
-                if (!current.equals(mobSnapshot)) {
-                    blockedMobIds = parseLocations(current, "mob");
-                    mobSnapshot = current;
-                }
-            }
-        }
-        return blockedMobIds;
-    }
-
-    private static Set<ResourceLocation> getBlockedStructureIds() {
-        List<String> current = List.copyOf(BLOCKED_STRUCTURES.get());
-        if (!current.equals(structureSnapshot)) {
-            synchronized (DisablerConfig.class) {
-                if (!current.equals(structureSnapshot)) {
-                    blockedStructureIds = parseLocations(current, "structure");
-                    structureSnapshot = current;
-                }
-            }
-        }
-        return blockedStructureIds;
-    }
-
-    private static Set<ResourceLocation> getBlockedBiomeIds() {
-        List<String> current = List.copyOf(BLOCKED_BIOMES.get());
-        if (!current.equals(biomeSnapshot)) {
-            synchronized (DisablerConfig.class) {
-                if (!current.equals(biomeSnapshot)) {
-                    blockedBiomeIds = parseLocations(current, "biome");
-                    biomeSnapshot = current;
-                }
-            }
-        }
-        return blockedBiomeIds;
-    }
-
-    private static Set<ResourceLocation> getBlockedItemIds() {
-        List<String> current = List.copyOf(BLOCKED_ITEMS.get());
-        if (!current.equals(itemSnapshot)) {
-            synchronized (DisablerConfig.class) {
-                if (!current.equals(itemSnapshot)) {
-                    blockedItemIds = parseLocations(current, "item");
-                    itemSnapshot = current;
-                }
-            }
-        }
-        return blockedItemIds;
+        return snapshot.blockedItemIds().contains(BuiltInRegistries.ITEM.getKey(item));
     }
 
     public static Set<ResourceLocation> getBiomeExceptionIds() {
-        List<String> current = List.copyOf(BIOME_EXCEPTIONS.get());
-        if (!current.equals(biomeExceptionSnapshot)) {
-            synchronized (DisablerConfig.class) {
-                if (!current.equals(biomeExceptionSnapshot)) {
-                    biomeExceptionIds = parseLocations(current, "biome exception");
-                    biomeExceptionSnapshot = current;
-                }
-            }
+        return snapshot.biomeExceptionIds();
+    }
+
+    private static void ensureConfigExists(Path configPath) throws IOException {
+        if (Files.exists(configPath)) {
+            return;
         }
-        return biomeExceptionIds;
+
+        Files.createDirectories(configPath.getParent());
+        JsonObject config = createInitialConfig(configPath);
+        try (Writer writer = Files.newBufferedWriter(configPath)) {
+            GSON.toJson(config, writer);
+        }
+        LOGGER.info("Created Disabler JSON config at {}", configPath);
+    }
+
+    private static JsonObject createInitialConfig(Path configPath) throws IOException {
+        Path legacyConfigPath = configPath.resolveSibling(LEGACY_CONFIG_FILE_NAME);
+        if (!Files.exists(legacyConfigPath)) {
+            return defaultConfigJson();
+        }
+
+        JsonObject migrated = migrateLegacyToml(legacyConfigPath);
+        LOGGER.info("Migrated Disabler config from '{}' to JSON format", legacyConfigPath);
+        return migrated;
+    }
+
+    private static JsonObject defaultConfigJson() {
+        JsonObject root = new JsonObject();
+        root.add("blocked_mobs", new JsonArray());
+        root.add("blocked_structures", new JsonArray());
+        root.add("blocked_biomes", new JsonArray());
+        root.add("blocked_items", new JsonArray());
+
+        JsonArray exceptions = new JsonArray();
+        for (String exception : DEFAULT_BIOME_EXCEPTIONS) {
+            exceptions.add(exception);
+        }
+        root.add("biome_exceptions", exceptions);
+        return root;
+    }
+
+    private static JsonObject migrateLegacyToml(Path legacyConfigPath) throws IOException {
+        List<String> lines = Files.readAllLines(legacyConfigPath);
+        JsonObject root = defaultConfigJson();
+
+        copyLegacyArray(root, lines, "blocked_mobs", "blocked_mobs");
+        copyLegacyArray(root, lines, "blocked_structures", "blocked_structures");
+        copyLegacyArray(root, lines, "blocked_biomes", "blocked_biomes");
+        copyLegacyArray(root, lines, "blocked_items", "blocked_items");
+        copyLegacyArray(root, lines, "exceptions", "biome_exceptions");
+        return root;
+    }
+
+    private static void copyLegacyArray(JsonObject root, List<String> lines, String legacyKey, String jsonKey) {
+        List<String> values = readLegacyTomlArray(lines, legacyKey);
+        if (values != null) {
+            root.add(jsonKey, toJsonArray(values));
+        }
+    }
+
+    private static List<String> readLegacyTomlArray(List<String> lines, String key) {
+        for (String rawLine : lines) {
+            String line = rawLine.split("#", 2)[0].trim();
+            if (!line.startsWith(key) || line.indexOf('=') < 0) {
+                continue;
+            }
+
+            int start = line.indexOf('[');
+            int end = line.lastIndexOf(']');
+            if (start < 0 || end < start) {
+                return List.of();
+            }
+
+            List<String> values = new ArrayList<>();
+            Matcher matcher = LEGACY_TOML_STRING_PATTERN.matcher(line.substring(start + 1, end));
+            while (matcher.find()) {
+                values.add(matcher.group(1));
+            }
+            return List.copyOf(values);
+        }
+        return null;
+    }
+
+    private static JsonArray toJsonArray(List<String> values) {
+        JsonArray array = new JsonArray();
+        for (String value : values) {
+            array.add(value);
+        }
+        return array;
+    }
+
+    private static Snapshot parseSnapshot(JsonObject root) {
+        return new Snapshot(
+                parseLocations(readStringList(root, "blocked_mobs", "spawns", List.of()), "mob"),
+                parseLocations(readStringList(root, "blocked_structures", "structures", List.of()), "structure"),
+                parseLocations(readStringList(root, "blocked_biomes", "biomes", List.of()), "biome"),
+                parseLocations(readStringList(root, "blocked_items", "items", List.of()), "item"),
+                parseLocations(readBiomeExceptions(root), "biome exception"));
+    }
+
+    private static List<String> readBiomeExceptions(JsonObject root) {
+        JsonElement element = root.get("biome_exceptions");
+        if (element != null && element.isJsonObject()) {
+            return readArray(element.getAsJsonObject().get("exceptions"), "biome_exceptions.exceptions", DEFAULT_BIOME_EXCEPTIONS);
+        }
+        return readArray(element, "biome_exceptions", DEFAULT_BIOME_EXCEPTIONS);
+    }
+
+    private static List<String> readStringList(JsonObject root, String key, String section, List<String> defaultValue) {
+        JsonElement element = root.get(key);
+        if (element == null && root.has(section) && root.get(section).isJsonObject()) {
+            element = root.getAsJsonObject(section).get(key);
+        }
+        return readArray(element, key, defaultValue);
+    }
+
+    private static List<String> readArray(JsonElement element, String name, List<String> defaultValue) {
+        if (element == null || element.isJsonNull()) {
+            return defaultValue;
+        }
+
+        if (!element.isJsonArray()) {
+            LOGGER.warn("Ignoring Disabler config key '{}' because it is not a JSON array", name);
+            return defaultValue;
+        }
+
+        List<String> values = new ArrayList<>();
+        for (JsonElement entry : element.getAsJsonArray()) {
+            if (!entry.isJsonPrimitive() || !entry.getAsJsonPrimitive().isString()) {
+                LOGGER.warn("Ignoring non-string value '{}' in Disabler config key '{}'", entry, name);
+                continue;
+            }
+            values.add(entry.getAsString());
+        }
+        return List.copyOf(values);
     }
 
     private static Set<ResourceLocation> parseLocations(List<String> rawIds, String kind) {
@@ -198,5 +248,21 @@ public final class DisablerConfig {
             parsedIds.add(id);
         }
         return Set.copyOf(parsedIds);
+    }
+
+    private record Snapshot(
+            Set<ResourceLocation> blockedMobIds,
+            Set<ResourceLocation> blockedStructureIds,
+            Set<ResourceLocation> blockedBiomeIds,
+            Set<ResourceLocation> blockedItemIds,
+            Set<ResourceLocation> biomeExceptionIds) {
+        private static Snapshot defaults() {
+            return new Snapshot(
+                    Set.of(),
+                    Set.of(),
+                    Set.of(),
+                    Set.of(),
+                    parseLocations(DEFAULT_BIOME_EXCEPTIONS, "biome exception"));
+        }
     }
 }
