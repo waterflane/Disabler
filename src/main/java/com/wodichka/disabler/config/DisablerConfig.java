@@ -29,6 +29,10 @@ public final class DisablerConfig {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final List<String> DEFAULT_BIOME_EXCEPTIONS = List.of("minecraft:mushroom_fields");
+    private static final boolean DEFAULT_STORAGE_SCAN_ENABLED = true;
+    private static final int DEFAULT_STORAGE_SCAN_INTERVAL_TICKS = 300;
+    private static final int DEFAULT_STORAGE_SCAN_BLOCK_ENTITIES_PER_TICK = 512;
+    private static final List<String> DEFAULT_STORAGE_SCAN_SKIPPED_NAMESPACES = List.of("lootr");
     private static final String CONFIG_FILE_NAME = "disabler-server.json";
     private static final String LEGACY_CONFIG_FILE_NAME = "disabler-server.toml";
     private static final Pattern LEGACY_TOML_STRING_PATTERN = Pattern.compile("\"([^\"]+)\"");
@@ -50,7 +54,12 @@ public final class DisablerConfig {
                     return;
                 }
 
-                snapshot = parseSnapshot(parsed.getAsJsonObject());
+                JsonObject root = parsed.getAsJsonObject();
+                if (addMissingDefaultKeys(root)) {
+                    writeConfig(configPath, root);
+                }
+
+                snapshot = parseSnapshot(root);
                 LOGGER.info("Loaded Disabler JSON config from {}", configPath);
             }
         } catch (Exception exception) {
@@ -102,6 +111,22 @@ public final class DisablerConfig {
         return snapshot.biomeExceptionIds();
     }
 
+    public static boolean shouldScanStorageInventories() {
+        return snapshot.storageScanEnabled();
+    }
+
+    public static int getStorageScanIntervalTicks() {
+        return snapshot.storageScanIntervalTicks();
+    }
+
+    public static int getStorageScanBlockEntitiesPerTick() {
+        return snapshot.storageScanBlockEntitiesPerTick();
+    }
+
+    public static Set<String> getStorageScanSkippedNamespaces() {
+        return snapshot.storageScanSkippedNamespaces();
+    }
+
     private static void ensureConfigExists(Path configPath) throws IOException {
         if (Files.exists(configPath)) {
             return;
@@ -109,10 +134,14 @@ public final class DisablerConfig {
 
         Files.createDirectories(configPath.getParent());
         JsonObject config = createInitialConfig(configPath);
+        writeConfig(configPath, config);
+        LOGGER.info("Created Disabler JSON config at {}", configPath);
+    }
+
+    private static void writeConfig(Path configPath, JsonObject config) throws IOException {
         try (Writer writer = Files.newBufferedWriter(configPath)) {
             GSON.toJson(config, writer);
         }
-        LOGGER.info("Created Disabler JSON config at {}", configPath);
     }
 
     private static JsonObject createInitialConfig(Path configPath) throws IOException {
@@ -133,12 +162,47 @@ public final class DisablerConfig {
         root.add("blocked_biomes", new JsonArray());
         root.add("blocked_items", new JsonArray());
 
+        JsonObject storageScan = new JsonObject();
+        storageScan.addProperty("enabled", DEFAULT_STORAGE_SCAN_ENABLED);
+        storageScan.addProperty("interval_ticks", DEFAULT_STORAGE_SCAN_INTERVAL_TICKS);
+        storageScan.addProperty("block_entities_per_tick", DEFAULT_STORAGE_SCAN_BLOCK_ENTITIES_PER_TICK);
+        storageScan.add("skipped_namespaces", toJsonArray(DEFAULT_STORAGE_SCAN_SKIPPED_NAMESPACES));
+        root.add("storage_scan", storageScan);
+
         JsonArray exceptions = new JsonArray();
         for (String exception : DEFAULT_BIOME_EXCEPTIONS) {
             exceptions.add(exception);
         }
         root.add("biome_exceptions", exceptions);
         return root;
+    }
+
+    private static boolean addMissingDefaultKeys(JsonObject root) {
+        boolean changed = false;
+        JsonObject defaults = defaultConfigJson();
+
+        for (String key : List.of("blocked_mobs", "blocked_structures", "blocked_biomes", "blocked_items", "biome_exceptions")) {
+            if (!root.has(key)) {
+                root.add(key, defaults.get(key).deepCopy());
+                changed = true;
+            }
+        }
+
+        if (!root.has("storage_scan") || !root.get("storage_scan").isJsonObject()) {
+            root.add("storage_scan", defaults.get("storage_scan").deepCopy());
+            return true;
+        }
+
+        JsonObject storageScan = root.getAsJsonObject("storage_scan");
+        JsonObject defaultStorageScan = defaults.getAsJsonObject("storage_scan");
+        for (String key : List.of("enabled", "interval_ticks", "block_entities_per_tick", "skipped_namespaces")) {
+            if (!storageScan.has(key)) {
+                storageScan.add(key, defaultStorageScan.get(key).deepCopy());
+                changed = true;
+            }
+        }
+
+        return changed;
     }
 
     private static JsonObject migrateLegacyToml(Path legacyConfigPath) throws IOException {
@@ -197,7 +261,11 @@ public final class DisablerConfig {
                 parseLocations(readStringList(root, "blocked_structures", "structures", List.of()), "structure"),
                 parseLocations(readStringList(root, "blocked_biomes", "biomes", List.of()), "biome"),
                 parseLocations(readStringList(root, "blocked_items", "items", List.of()), "item"),
-                parseLocations(readBiomeExceptions(root), "biome exception"));
+                parseLocations(readBiomeExceptions(root), "biome exception"),
+                readStorageScanEnabled(root),
+                readStorageScanIntervalTicks(root),
+                readStorageScanBlockEntitiesPerTick(root),
+                readStorageScanSkippedNamespaces(root));
     }
 
     private static List<String> readBiomeExceptions(JsonObject root) {
@@ -208,12 +276,92 @@ public final class DisablerConfig {
         return readArray(element, "biome_exceptions", DEFAULT_BIOME_EXCEPTIONS);
     }
 
+    private static boolean readStorageScanEnabled(JsonObject root) {
+        JsonObject storageScan = readObject(root, "storage_scan");
+        if (storageScan != null && storageScan.has("enabled")) {
+            return readBoolean(storageScan.get("enabled"), "storage_scan.enabled", DEFAULT_STORAGE_SCAN_ENABLED);
+        }
+        return readBoolean(root.get("scan_storage_inventories"), "scan_storage_inventories", DEFAULT_STORAGE_SCAN_ENABLED);
+    }
+
+    private static int readStorageScanIntervalTicks(JsonObject root) {
+        JsonObject storageScan = readObject(root, "storage_scan");
+        int value;
+        if (storageScan != null && storageScan.has("interval_ticks")) {
+            value = readInt(storageScan.get("interval_ticks"), "storage_scan.interval_ticks", DEFAULT_STORAGE_SCAN_INTERVAL_TICKS);
+        } else {
+            value = readInt(root.get("storage_scan_interval_ticks"), "storage_scan_interval_ticks", DEFAULT_STORAGE_SCAN_INTERVAL_TICKS);
+        }
+        return Math.max(20, value);
+    }
+
+    private static int readStorageScanBlockEntitiesPerTick(JsonObject root) {
+        JsonObject storageScan = readObject(root, "storage_scan");
+        int value;
+        if (storageScan != null && storageScan.has("block_entities_per_tick")) {
+            value = readInt(storageScan.get("block_entities_per_tick"), "storage_scan.block_entities_per_tick", DEFAULT_STORAGE_SCAN_BLOCK_ENTITIES_PER_TICK);
+        } else {
+            value = readInt(root.get("storage_scan_block_entities_per_tick"), "storage_scan_block_entities_per_tick", DEFAULT_STORAGE_SCAN_BLOCK_ENTITIES_PER_TICK);
+        }
+        return Math.max(1, value);
+    }
+
+    private static Set<String> readStorageScanSkippedNamespaces(JsonObject root) {
+        JsonObject storageScan = readObject(root, "storage_scan");
+        List<String> rawNamespaces = storageScan == null
+                ? DEFAULT_STORAGE_SCAN_SKIPPED_NAMESPACES
+                : readArray(storageScan.get("skipped_namespaces"), "storage_scan.skipped_namespaces", DEFAULT_STORAGE_SCAN_SKIPPED_NAMESPACES);
+
+        Set<String> namespaces = new LinkedHashSet<>();
+        for (String rawNamespace : rawNamespaces) {
+            String namespace = rawNamespace.trim().toLowerCase(java.util.Locale.ROOT);
+            if (!namespace.isEmpty()) {
+                namespaces.add(namespace);
+            }
+        }
+        return Set.copyOf(namespaces);
+    }
+
+    private static JsonObject readObject(JsonObject root, String key) {
+        JsonElement element = root.get(key);
+        if (element == null || element.isJsonNull()) {
+            return null;
+        }
+        if (!element.isJsonObject()) {
+            LOGGER.warn("Ignoring Disabler config key '{}' because it is not a JSON object", key);
+            return null;
+        }
+        return element.getAsJsonObject();
+    }
+
     private static List<String> readStringList(JsonObject root, String key, String section, List<String> defaultValue) {
         JsonElement element = root.get(key);
         if (element == null && root.has(section) && root.get(section).isJsonObject()) {
             element = root.getAsJsonObject(section).get(key);
         }
         return readArray(element, key, defaultValue);
+    }
+
+    private static boolean readBoolean(JsonElement element, String name, boolean defaultValue) {
+        if (element == null || element.isJsonNull()) {
+            return defaultValue;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isBoolean()) {
+            LOGGER.warn("Ignoring Disabler config key '{}' because it is not a boolean", name);
+            return defaultValue;
+        }
+        return element.getAsBoolean();
+    }
+
+    private static int readInt(JsonElement element, String name, int defaultValue) {
+        if (element == null || element.isJsonNull()) {
+            return defaultValue;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            LOGGER.warn("Ignoring Disabler config key '{}' because it is not a number", name);
+            return defaultValue;
+        }
+        return element.getAsInt();
     }
 
     private static List<String> readArray(JsonElement element, String name, List<String> defaultValue) {
@@ -255,14 +403,22 @@ public final class DisablerConfig {
             Set<ResourceLocation> blockedStructureIds,
             Set<ResourceLocation> blockedBiomeIds,
             Set<ResourceLocation> blockedItemIds,
-            Set<ResourceLocation> biomeExceptionIds) {
+            Set<ResourceLocation> biomeExceptionIds,
+            boolean storageScanEnabled,
+            int storageScanIntervalTicks,
+            int storageScanBlockEntitiesPerTick,
+            Set<String> storageScanSkippedNamespaces) {
         private static Snapshot defaults() {
             return new Snapshot(
                     Set.of(),
                     Set.of(),
                     Set.of(),
                     Set.of(),
-                    parseLocations(DEFAULT_BIOME_EXCEPTIONS, "biome exception"));
+                    parseLocations(DEFAULT_BIOME_EXCEPTIONS, "biome exception"),
+                    DEFAULT_STORAGE_SCAN_ENABLED,
+                    DEFAULT_STORAGE_SCAN_INTERVAL_TICKS,
+                    DEFAULT_STORAGE_SCAN_BLOCK_ENTITIES_PER_TICK,
+                    Set.copyOf(DEFAULT_STORAGE_SCAN_SKIPPED_NAMESPACES));
         }
     }
 }

@@ -29,6 +29,14 @@ The config file is located at:
   "blocked_structures": [],
   "blocked_biomes": [],
   "blocked_items": [],
+  "storage_scan": {
+    "enabled": true,
+    "interval_ticks": 300,
+    "block_entities_per_tick": 512,
+    "skipped_namespaces": [
+      "lootr"
+    ]
+  },
   "biome_exceptions": [
     "minecraft:mushroom_fields"
   ]
@@ -41,6 +49,8 @@ The config file is located at:
 - **All lists can be empty**: Leave any list empty (`[]`) to disable that feature entirely.
 - **Config is written to disk**: When the mod generates `disabler-server.json` for the first time, it includes the default `minecraft:mushroom_fields` in the exceptions list. If an old `disabler-server.toml` exists and JSON does not, known list keys are migrated into the new JSON file.
 - **JSON reload timing**: The config is loaded during mod initialization and reloaded when the server/world is about to start.
+- **Storage Scan**: `storage_scan.enabled` allows blocked items to be removed from loaded block entity inventories exposed through NeoForge item capabilities. `interval_ticks` defaults to 300 ticks (about 15 seconds), and `block_entities_per_tick` limits how many loaded block entities are processed per tick while a scan is running.
+- **Lootr Compatibility**: `storage_scan.skipped_namespaces` contains `lootr` by default, so Lootr chests, barrels, shulker boxes, frames, and similar per-player loot containers are not touched as normal inventories. Lootr-generated per-player inventories are filtered separately when they are created, so items listed in `blocked_items` are removed without replacing Lootr containers with vanilla ones.
 
 ### Biome Blocking Implementation
 
@@ -85,6 +95,7 @@ Blocked items are handled without scanning every player every tick:
 1. **Loot Table Filtering** (`ConfigDrivenLootModifier`):
    - A global NeoForge loot modifier removes blocked items from generated loot lists
    - This applies to vanilla, modded, and datapack loot tables
+   - Lootr per-player inventories are also cleaned at creation time through optional Lootr compatibility mixins
 
 2. **Runtime Item Prevention** (`ItemBlocker`):
    - Ground item entities with blocked items are cancelled before joining the level
@@ -94,6 +105,12 @@ Blocked items are handled without scanning every player every tick:
 3. **Inventory Cleanup** (`BlockedItemCleaner`):
    - Player inventories, armor, offhand, ender chests, carried cursor stacks, and open containers are cleaned on login, respawn, dimension change, container open/close, crafting, and smelting
    - A lightweight safety sweep runs once every 100 server ticks (5 seconds), not every tick
+
+4. **Storage Inventory Cleanup** (`StorageInventoryScanner`):
+   - When enabled, loaded block entity inventories are checked through NeoForge `ItemHandler` capabilities
+   - This covers many technical and magic mod storages without hardcoding mod ids
+   - Scans are interval-based and processed in batches to avoid one large server tick spike
+   - Namespaces listed in `storage_scan.skipped_namespaces` are skipped before any inventory/capability access
 
 ### Structure Blocking Implementation
 

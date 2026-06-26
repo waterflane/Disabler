@@ -2,6 +2,7 @@ package com.wodichka.disabler.event;
 
 import com.wodichka.disabler.config.DisablerConfig;
 import com.wodichka.disabler.item.BlockedItemCleaner;
+import com.wodichka.disabler.item.StorageInventoryScanner;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,10 +17,13 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 public final class ItemBlocker {
     private static final int INVENTORY_SWEEP_INTERVAL_TICKS = 100;
 
+    private final StorageInventoryScanner storageInventoryScanner = new StorageInventoryScanner();
     private int ticksUntilSweep = INVENTORY_SWEEP_INTERVAL_TICKS;
 
     @SubscribeEvent
     public void onServerTick(ServerTickEvent.Post event) {
+        storageInventoryScanner.tick(event.getServer());
+
         if (!DisablerConfig.hasBlockedItems()) {
             ticksUntilSweep = INVENTORY_SWEEP_INTERVAL_TICKS;
             return;

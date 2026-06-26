@@ -4,6 +4,9 @@
   "package": "com.wodichka.disabler.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "ChunkMapAccessor",
+    "LootrItemFrameMixin",
+    "LootrSavedDataMixin",
     "MultiNoiseBiomeSourceMixin"
   ],
   "injectors": {

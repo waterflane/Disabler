@@ -3,6 +3,7 @@ package com.wodichka.disabler.mixin;
 import com.mojang.datafixers.util.Either;
 import com.wodichka.disabler.config.DisablerConfig;
 import com.wodichka.disabler.world.BiomeRemovalResolver;
+import com.wodichka.disabler.world.BiomeRemovalResolver.Candidate;
 import java.util.List;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
@@ -24,7 +25,7 @@ public abstract class MultiNoiseBiomeSourceMixin {
     private Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> parameters;
 
     @Unique
-    private volatile List<Holder<Biome>> disabler$allowedBiomes;
+    private volatile List<Candidate> disabler$allowedBiomes;
 
     @Inject(method = "getNoiseBiome", at = @At("RETURN"), cancellable = true)
     private void disabler$replaceBlockedBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler, CallbackInfoReturnable<Holder<Biome>> cir) {
@@ -37,15 +38,15 @@ public abstract class MultiNoiseBiomeSourceMixin {
             return;
         }
 
-        List<Holder<Biome>> allowedBiomes = disabler$getAllowedBiomes();
+        List<Candidate> allowedBiomes = disabler$getAllowedBiomes();
         if (!allowedBiomes.isEmpty()) {
-            cir.setReturnValue(BiomeRemovalResolver.resolveReplacement(selectedBiome, allowedBiomes));
+            cir.setReturnValue(BiomeRemovalResolver.resolveReplacement(selectedBiome, sampler.sample(quartX, quartY, quartZ), allowedBiomes));
         }
     }
 
     @Unique
-    private List<Holder<Biome>> disabler$getAllowedBiomes() {
-        List<Holder<Biome>> cached = this.disabler$allowedBiomes;
+    private List<Candidate> disabler$getAllowedBiomes() {
+        List<Candidate> cached = this.disabler$allowedBiomes;
         if (cached == null) {
             Climate.ParameterList<Holder<Biome>> parameterList = this.parameters.map(
                     directParameters -> directParameters,
