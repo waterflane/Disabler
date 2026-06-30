@@ -1,11 +1,16 @@
 # Disabler
 
-A server-side mod that lets server admins block specific mob spawns, biomes, dimensions, and structure generation through a simple config file. No GUI is required, and config changes are picked up on the next world load.
+A server-side mod that lets server admins block mobs, biomes, structures, dimensions, and items through a simple JSON config. No GUI is required, and config changes are picked up on the next world load.
+
+Current mod version: **1.3**
 
 - **Block mob spawns** — remove mobs from biome spawn lists and cancel runtime spawn attempts
 - **Block biomes** — strip their mob spawns, carvers, features, and structures from world generation; blocked biomes are replaced with allowed alternatives at runtime
 - **Block structures** — prevent entire structure types from generating and strip their mob spawn overrides
+- **Block dimensions** — cancel travel before an entity enters any configured vanilla or modded dimension
 - **Block items** — remove configured items from generated loot, pickups, player inventories, ender chests, and open containers
+- **Scan loaded storages** — clean compatible technical and magic mod inventories in configurable batches
+- **Lootr compatibility** — filter each player's generated Lootr inventory while preserving Lootr chests, barrels, frames, and other containers
 - Config-driven: plain JSON file, no commands or GUI needed
 - Server-side only (no client install required)
 
@@ -14,32 +19,34 @@ A server-side mod that lets server admins block specific mob spawns, biomes, dim
 | Component | Version |
 |-----------|---------|
 | Minecraft | 1.21.1 |
+| Fabric Loader | 0.16.10+ |
+| Fabric API | 0.116.12+1.21.1 |
+| Forge | 52.1.x |
 | NeoForge | 21.1.x |
 
 ## Configuration
 
-The config file is located at:
-```
-.minecraft/config/disabler-server.json
-```
+The mod creates two files:
+
+- `.minecraft/config/disabler-server.json` - the server configuration
+- `.minecraft/config/DisablerGuide.md` - a short guide for every parameter
 
 ```json
 {
   "blocked_mobs": [],
-  "blocked_structures": [],
   "blocked_biomes": [],
+  "biome_exceptions": [
+    "minecraft:mushroom_fields"
+  ],
+  "blocked_structures": [],
+  "blocked_dimensions": [],
   "blocked_items": [],
   "storage_scan": {
     "enabled": true,
     "interval_ticks": 300,
     "block_entities_per_tick": 512,
-    "skipped_namespaces": [
-      "lootr"
-    ]
-  },
-  "biome_exceptions": [
-    "minecraft:mushroom_fields"
-  ]
+    "skipped_namespaces": []
+  }
 }
 ```
 
@@ -50,7 +57,8 @@ The config file is located at:
 - **Config is written to disk**: When the mod generates `disabler-server.json` for the first time, it includes the default `minecraft:mushroom_fields` in the exceptions list. If an old `disabler-server.toml` exists and JSON does not, known list keys are migrated into the new JSON file.
 - **JSON reload timing**: The config is loaded during mod initialization and reloaded when the server/world is about to start.
 - **Storage Scan**: `storage_scan.enabled` allows blocked items to be removed from loaded block entity inventories exposed through NeoForge item capabilities. `interval_ticks` defaults to 300 ticks (about 15 seconds), and `block_entities_per_tick` limits how many loaded block entities are processed per tick while a scan is running.
-- **Lootr Compatibility**: `storage_scan.skipped_namespaces` contains `lootr` by default, so Lootr chests, barrels, shulker boxes, frames, and similar per-player loot containers are not touched as normal inventories. Lootr-generated per-player inventories are filtered separately when they are created, so items listed in `blocked_items` are removed without replacing Lootr containers with vanilla ones.
+- **Config guide**: The mod creates `config/DisablerGuide.md` next to the JSON config. It briefly describes every parameter and is kept in sync with the current config format.
+- **Lootr Compatibility**: `storage_scan.skipped_namespaces` is empty by default. Physical Lootr chests, barrels, shulker boxes, frames, and similar containers are protected internally and are never processed as ordinary storages. Lootr-generated per-player inventories are filtered separately when they are created, so blocked items are removed without replacing Lootr containers with vanilla ones.
 
 ### Biome Blocking Implementation
 
@@ -92,8 +100,9 @@ Blocked mobs are handled at two runtime points:
 
 Blocked items are handled without scanning every player every tick:
 
-1. **Loot Table Filtering** (`ConfigDrivenLootModifier`):
-   - A global NeoForge loot modifier removes blocked items from generated loot lists
+1. **Loot Table Filtering**:
+   - Forge and NeoForge use loader-native global loot modifiers
+   - Fabric filters the central loot-table output path
    - This applies to vanilla, modded, and datapack loot tables
    - Lootr per-player inventories are also cleaned at creation time through optional Lootr compatibility mixins
 
@@ -107,7 +116,7 @@ Blocked items are handled without scanning every player every tick:
    - A lightweight safety sweep runs once every 100 server ticks (5 seconds), not every tick
 
 4. **Storage Inventory Cleanup** (`StorageInventoryScanner`):
-   - When enabled, loaded block entity inventories are checked through NeoForge `ItemHandler` capabilities
+   - Loaded block entity inventories are checked through Forge/NeoForge item capabilities or Fabric Transfer API
    - This covers many technical and magic mod storages without hardcoding mod ids
    - Scans are interval-based and processed in batches to avoid one large server tick spike
    - Namespaces listed in `storage_scan.skipped_namespaces` are skipped before any inventory/capability access
@@ -147,7 +156,7 @@ cd Disabler
 ./gradlew build
 ```
 
-The compiled jar will be in `build/libs/`.
+Loader jars are copied to `releases/` as `disabler-<loader>-1.21.1-1.3.jar`.
 
 ## License
 

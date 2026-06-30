@@ -1,0 +1,66 @@
+plugins {
+    id 'architectury-plugin'
+    id 'java-library'
+    id 'dev.architectury.loom'
+}
+
+architectury {
+    platformSetupLoomIde()
+    forge()
+}
+
+dependencies {
+    forge "net.minecraftforge:forge:${forge_version}"
+}
+
+jar {
+    manifest {
+        attributes([
+                'MixinConfigs': 'disabler-common.mixins.json'
+        ])
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDirs += project(':common').sourceSets.main.java.srcDirs
+        resources.srcDirs += project(':common').sourceSets.main.resources.srcDirs
+    }
+}
+
+processResources {
+    inputs.properties(
+            minecraft_version: minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            forge_loader_version_range: forge_loader_version_range,
+            mod_id: mod_id,
+            mod_name: mod_name,
+            mod_license: mod_license,
+            mod_version: mod_version,
+            mod_authors: mod_authors,
+            mod_description: mod_description
+    )
+    filesMatching('META-INF/mods.toml') {
+        expand inputs.properties
+    }
+}
+
+remapJar {
+    enabled = false
+}
+
+tasks.register('copyForgeJar', Copy) {
+    dependsOn jar
+    from jar.archiveFile
+    into layout.buildDirectory.dir('libs')
+    rename { "${base.archivesName.get()}-${project.version}.jar" }
+}
+
+assemble.dependsOn copyForgeJar
+
+sourcesJar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    def commonSources = project(':common').sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}
