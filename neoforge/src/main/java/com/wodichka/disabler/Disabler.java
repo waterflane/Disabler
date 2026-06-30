@@ -1,7 +1,9 @@
 package com.wodichka.disabler;
 
 import com.wodichka.disabler.config.DisablerConfig;
+import com.wodichka.disabler.event.ConfigReloader;
 import com.wodichka.disabler.event.DimensionTravelBlocker;
+import com.wodichka.disabler.event.ItemBlocker;
 import com.wodichka.disabler.event.MobSpawnBlocker;
 import com.wodichka.disabler.world.DisablerModifiers;
 import net.minecraftforge.common.MinecraftForge;
@@ -15,7 +17,9 @@ public class Disabler {
     public Disabler() {
         DisablerConfig.load(FMLPaths.CONFIGDIR.get());
         DisablerModifiers.register();
+        MinecraftForge.EVENT_BUS.register(new ConfigReloader());
         MinecraftForge.EVENT_BUS.register(new MobSpawnBlocker());
         MinecraftForge.EVENT_BUS.register(new DimensionTravelBlocker());
+        MinecraftForge.EVENT_BUS.register(new ItemBlocker());
     }
 }

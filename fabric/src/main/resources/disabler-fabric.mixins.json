@@ -7,9 +7,14 @@
     "BaseFireBlockMixin",
     "ChunkGeneratorMixin",
     "EntityDimensionMixin",
+    "FurnaceResultSlotMixin",
+    "ItemEntityMixin",
+    "LootTableMixin",
     "MultiNoiseBiomeSourceMixin",
+    "ResultSlotMixin",
+    "ServerLevelMixin",
     "ServerPlayerDimensionMixin",
-    "ServerLevelMixin"
+    "ServerPlayerMenuMixin"
   ],
   "injectors": {
     "defaultRequire": 1

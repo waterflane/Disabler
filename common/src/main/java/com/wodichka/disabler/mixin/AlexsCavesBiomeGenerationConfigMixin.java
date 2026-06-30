@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -26,6 +27,17 @@ public abstract class AlexsCavesBiomeGenerationConfigMixin {
 
     @Unique
     private static volatile Map<ResourceKey<Biome>, ?> disabler$cachedFiltered;
+
+    @Inject(method = "getBiomeForEvent", at = @At("RETURN"), cancellable = true, remap = false, require = 0)
+    private static void disabler$removeBlockedBiomeFromAlexsCavesEvent(
+            @Coerce Object event,
+            CallbackInfoReturnable<Object> cir) {
+        Object selectedBiome = cir.getReturnValue();
+        if (selectedBiome instanceof ResourceKey<?> biomeKey
+                && DisablerConfig.isBlockedBiome(biomeKey.location())) {
+            cir.setReturnValue(null);
+        }
+    }
 
     @Inject(method = "getBiomesSnapshot", at = @At("RETURN"), cancellable = true, remap = false, require = 0)
     private static void disabler$removeBlockedBiomesFromAlexsCavesSnapshot(CallbackInfoReturnable<Map<ResourceKey<Biome>, ?>> cir) {

@@ -18,7 +18,7 @@ public abstract class AlexsCavesFillBiomeAboveFeatureMixin {
     @Unique
     private static volatile Field disabler$newBiomeField;
 
-    @Inject(method = "place", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
+    @Inject(method = {"place", "m_142674_"}, at = @At("HEAD"), cancellable = true, remap = false, require = 0)
     private void disabler$skipBlockedBiomeRewrite(FeaturePlaceContext<?> context, CallbackInfoReturnable<Boolean> cir) {
         Holder<Biome> newBiome = disabler$getConfiguredNewBiome(context.config());
         if (newBiome != null && BiomeRemovalResolver.isBlocked(newBiome)) {
