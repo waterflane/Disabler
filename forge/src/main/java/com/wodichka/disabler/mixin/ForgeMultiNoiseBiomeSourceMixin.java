@@ -3,6 +3,8 @@ package com.wodichka.disabler.mixin;
 import com.mojang.datafixers.util.Either;
 import com.wodichka.disabler.config.DisablerConfig;
 import com.wodichka.disabler.world.BiomeRemovalResolver;
+import com.wodichka.disabler.world.BiomeRemovalResolver.Candidate;
+import java.util.List;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Climate;
@@ -23,33 +25,37 @@ public abstract class ForgeMultiNoiseBiomeSourceMixin {
     private Either<Climate.ParameterList<Holder<Biome>>, Holder<MultiNoiseBiomeSourceParameterList>> f_48435_;
 
     @Unique
-    private volatile Climate.ParameterList<Holder<Biome>> disabler$allowedBiomes;
+    private volatile List<Candidate> disabler$allowedBiomes;
 
-    @Inject(method = "m_203407_(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;", at = @At("HEAD"), cancellable = true, remap = false)
-    private void disabler$replaceCancelledBlockedBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler, CallbackInfoReturnable<Holder<Biome>> cir) {
-        if (!cir.isCancelled() || !DisablerConfig.hasBlockedBiomes()) {
-            return;
-        }
-        Climate.TargetPoint targetPoint = sampler.sample(quartX, quartY, quartZ);
-        disabler$replaceBlockedReturnValue(targetPoint, cir);
+    @Inject(
+            method = "m_203407_(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;",
+            at = @At("RETURN"),
+            cancellable = true,
+            remap = false)
+    private void disabler$replaceBlockedBiome(
+            int quartX,
+            int quartY,
+            int quartZ,
+            Climate.Sampler sampler,
+            CallbackInfoReturnable<Holder<Biome>> cir) {
+        disabler$replaceBlockedReturnValue(sampler.sample(quartX, quartY, quartZ), cir);
     }
 
-    @Inject(method = "m_203407_(IIILnet/minecraft/world/level/biome/Climate$Sampler;)Lnet/minecraft/core/Holder;", at = @At("RETURN"), cancellable = true, remap = false)
-    private void disabler$replaceBlockedBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler, CallbackInfoReturnable<Holder<Biome>> cir) {
-        if (!DisablerConfig.hasBlockedBiomes()) {
-            return;
-        }
-        Climate.TargetPoint targetPoint = sampler.sample(quartX, quartY, quartZ);
-        disabler$replaceBlockedReturnValue(targetPoint, cir);
-    }
-
-    @Inject(method = "m_204269_(Lnet/minecraft/world/level/biome/Climate$TargetPoint;)Lnet/minecraft/core/Holder;", at = @At("RETURN"), cancellable = true, remap = false)
-    private void disabler$replaceBlockedBiomeFromTarget(Climate.TargetPoint targetPoint, CallbackInfoReturnable<Holder<Biome>> cir) {
+    @Inject(
+            method = "m_204269_(Lnet/minecraft/world/level/biome/Climate$TargetPoint;)Lnet/minecraft/core/Holder;",
+            at = @At("RETURN"),
+            cancellable = true,
+            remap = false)
+    private void disabler$replaceBlockedBiomeFromTarget(
+            Climate.TargetPoint targetPoint,
+            CallbackInfoReturnable<Holder<Biome>> cir) {
         disabler$replaceBlockedReturnValue(targetPoint, cir);
     }
 
     @Unique
-    private void disabler$replaceBlockedReturnValue(Climate.TargetPoint targetPoint, CallbackInfoReturnable<Holder<Biome>> cir) {
+    private void disabler$replaceBlockedReturnValue(
+            Climate.TargetPoint targetPoint,
+            CallbackInfoReturnable<Holder<Biome>> cir) {
         if (!DisablerConfig.hasBlockedBiomes()) {
             return;
         }
@@ -59,20 +65,20 @@ public abstract class ForgeMultiNoiseBiomeSourceMixin {
             return;
         }
 
-        Climate.ParameterList<Holder<Biome>> allowedBiomes = disabler$getAllowedBiomes();
-        if (!allowedBiomes.values().isEmpty()) {
+        List<Candidate> allowedBiomes = disabler$getAllowedBiomes();
+        if (!allowedBiomes.isEmpty()) {
             cir.setReturnValue(BiomeRemovalResolver.resolveReplacement(selectedBiome, targetPoint, allowedBiomes));
         }
     }
 
     @Unique
-    private Climate.ParameterList<Holder<Biome>> disabler$getAllowedBiomes() {
-        Climate.ParameterList<Holder<Biome>> cached = this.disabler$allowedBiomes;
+    private List<Candidate> disabler$getAllowedBiomes() {
+        List<Candidate> cached = this.disabler$allowedBiomes;
         if (cached == null) {
             Climate.ParameterList<Holder<Biome>> parameterList = this.f_48435_.map(
                     directParameters -> directParameters,
                     presetParameters -> presetParameters.value().parameters());
-            cached = BiomeRemovalResolver.collectAllowedBiomeParameters(parameterList);
+            cached = BiomeRemovalResolver.collectAllowedBiomes(parameterList);
             this.disabler$allowedBiomes = cached;
         }
         return cached;

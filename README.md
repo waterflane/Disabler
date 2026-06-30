@@ -1,92 +1,163 @@
 # Disabler
 
-Disabler is a server-side Minecraft mod for blocking mob spawns, structures, biomes, and dimensions through one simple TOML config.
+A server-side mod that lets server admins block mobs, biomes, structures, dimensions, and items through a simple JSON config. No GUI is required, and config changes are picked up on the next world load.
 
-Version 1.2 is organized as a multi-loader project for Minecraft 1.21.1:
+Current mod version: **1.3**
 
-| Loader | Status |
-|--------|--------|
-| NeoForge | Native artifact |
-| Forge | Native artifact |
-| Fabric | Native artifact, Fabric API required |
+- **Block mob spawns** — remove mobs from biome spawn lists and cancel runtime spawn attempts
+- **Block biomes** — strip their mob spawns, carvers, features, and structures from world generation; blocked biomes are replaced with allowed alternatives at runtime
+- **Block structures** — prevent entire structure types from generating and strip their mob spawn overrides
+- **Block dimensions** — cancel travel before an entity enters any configured vanilla or modded dimension
+- **Block items** — remove configured items from generated loot, pickups, player inventories, ender chests, and open containers
+- **Scan loaded storages** — clean compatible technical and magic mod inventories in configurable batches
+- **Lootr compatibility** — filter each player's generated Lootr inventory while preserving Lootr chests, barrels, shulker boxes, and minecarts
+- Config-driven: plain JSON file, no commands or GUI needed
+- Server-side only (no client install required)
 
-Architectury Loom is used only for the build/toolchain layout. Architectury API is not required at runtime.
+## Requirements
 
-## Features
-
-- Block mob spawns by id.
-- Block structure generation by id.
-- Replace blocked biomes during world generation.
-- Keep blocked biomes out of structure biome filters and spawn-list paths where the loader allows it.
-- Block dimension travel before the entity changes level.
-- Prevent new Nether portals when `minecraft:the_nether` is blocked.
-- Keep the same config file on all loaders: `.minecraft/config/disabler-server.toml`.
-- Include Alex's Caves compatibility for rarity-based cave biome selection and direct biome rewrite paths.
+| Component | Version |
+|-----------|---------|
+| Minecraft | 1.20.1 |
+| Fabric Loader | 0.16.10+ |
+| Fabric API | 0.92.9+1.20.1 |
+| Forge | 47.4.x |
+| NeoForge | 47.1.x (legacy) |
 
 ## Configuration
 
-The config file is located at:
+The mod creates two files:
 
-```text
-.minecraft/config/disabler-server.toml
+- `.minecraft/config/disabler-server.json` - the server configuration
+- `.minecraft/config/DisablerGuide.md` - a short guide for every parameter
+
+```json
+{
+  "blocked_mobs": [],
+  "blocked_biomes": [],
+  "biome_exceptions": [
+    "minecraft:mushroom_fields"
+  ],
+  "blocked_structures": [],
+  "blocked_dimensions": [],
+  "blocked_items": [],
+  "storage_scan": {
+    "enabled": true,
+    "interval_ticks": 300,
+    "block_entities_per_tick": 512,
+    "skipped_namespaces": []
+  }
+}
 ```
 
-```toml
-[spawns]
-	#List of mob ids that should never appear in the world.
-	#Examples: "minecraft:zombie", "minecraft:creeper"
-	blocked_mobs = []
+### Key Points
 
-[structures]
-	#List of structure ids that should be removed from world generation.
-	#Examples: "minecraft:village_plains", "minecraft:mineshaft"
-	blocked_structures = []
+- **Biome Exceptions**: By default, `minecraft:mushroom_fields` is listed in `biome_exceptions`. This prevents it from being used as a replacement for blocked biomes, since mushroom biomes have special generation requirements (e.g., spawning only on islands). You can remove it from this list if you want mushroom biomes to be used as replacements.
+- **All lists can be empty**: Leave any list empty (`[]`) to disable that feature entirely.
+- **Config is written to disk**: When the mod generates `disabler-server.json` for the first time, it includes the default `minecraft:mushroom_fields` in the exceptions list. If an old `disabler-server.toml` exists and JSON does not, known list keys are migrated into the new JSON file.
+- **JSON reload timing**: The config is loaded during mod initialization and reloaded when the server/world is about to start.
+- **Storage Scan**: `storage_scan.enabled` allows blocked items to be removed from loaded block entity inventories exposed through Forge capabilities or Fabric Transfer API. `interval_ticks` defaults to 300 ticks (about 15 seconds), and `block_entities_per_tick` limits how many loaded block entities are processed per tick while a scan is running.
+- **Config guide**: The mod creates `config/DisablerGuide.md` next to the JSON config. It briefly describes every parameter and is kept in sync with the current config format.
+- **Lootr Compatibility**: `storage_scan.skipped_namespaces` is empty by default. Physical Lootr chests, barrels, shulker boxes, and minecarts are protected internally and are never processed as ordinary storages. Lootr-generated per-player inventories are filtered separately when they are created, so blocked items are removed without replacing Lootr containers with vanilla ones.
 
-[biomes]
-	#List of biome ids that should be fully removed from world generation.
-	#Examples: "minecraft:plains", "minecraft:swamp"
-	blocked_biomes = []
+### Biome Blocking Implementation
 
-[dimensions]
-	#List of dimension ids that entities should not be able to enter.
-	#Dimension travel is cancelled before the entity changes level.
-	#Examples: "minecraft:the_nether", "minecraft:the_end"
-	blocked_dimensions = []
+When a biome is blocked via the config, the following happens:
 
-[biome_exceptions]
-	#List of biome ids that should NOT be included in the replacement pool.
-	#These biomes have special generation requirements (e.g., mushroom biome on islands).
-	#They will be kept as fallback if no other allowed biomes exist.
-	#By default, minecraft:mushroom_fields is excluded.
-	#Examples: "minecraft:mushroom_fields", "minecraft:deep_dark"
-	exceptions = ["minecraft:mushroom_fields"]
-```
+1. **World Generation Phase** (`ConfigDrivenBiomeModifier`):
+   - All mob spawn entries are **cleared** from the blocked biome's spawn settings
+   - Carvers, features, and structures associated with that biome are removed
+   - The biome is excluded from structure generation filters
 
-`minecraft:mushroom_fields` is excluded from biome replacement candidates by default because it has special generation requirements. Empty lists are valid and disable that feature.
+2. **Runtime Biome Replacement** (`MultiNoiseBiomeSourceMixin`):
+   - During world generation, when a blocked biome would be selected via `getNoiseBiome()`, it's intercepted
+   - The biome is replaced with an **allowed alternative** from the same biome parameter list
+   - Replacement stays inside the current dimension because the candidate pool is collected from that dimension's own `MultiNoiseBiomeSource` (Nether uses only Nether biomes, Overworld uses only Overworld biomes, etc.)
+   - **Biome exceptions**: Biomes listed in `biome_exceptions` config section are **excluded from the replacement pool**. By default, `minecraft:mushroom_fields` is included in this list to prevent it from replacing blocked biomes (since it has special island-only generation requirements).
+   - Allowed biomes are collected once and cached in memory for performance
+   - If no allowed biomes exist (including exceptions), the blocked biome is kept as fallback (prevents empty world generation)
 
-## Implementation Notes
+3. **Structure Filtering** (`ConfigDrivenStructureModifier`):
+   - Blocked structures don't generate at all
+   - Structures are filtered to only generate in **non-blocked biomes**
+   - Mob spawn overrides are removed from blocked structures
+   - If a structure can only generate in blocked biomes, it's completely disabled
 
-- Common code owns config parsing, immutable runtime snapshots, biome replacement, and shared Minecraft/Alex's Caves mixins.
-- NeoForge and Forge use loader-native events plus biome and structure modifiers.
-- Fabric uses Fabric entrypoint loading plus mixins for entity add, dimension travel, Nether portal creation, structure generation, and spawn-list filtering.
-- Blocked dimension travel is cancelled in-place. Players are not teleported to spawn as a fallback.
+### Mob Blocking Implementation
 
-## Building
+Blocked mobs are handled at two runtime points:
 
-Requirements: JDK 21 and Git.
+1. **Spawn List Cleanup** (via `BiomeModifier`):
+   - Blocked mobs are removed from all biome spawn lists during world generation
+   - This prevents them from being scheduled for spawning
+
+2. **Runtime Spawn Cancellation** (`MobSpawnBlocker`):
+   - **`MobSpawnEvent.FinalizeSpawn`**: When a mob spawn attempt is finalized, if the mob type is blocked, the spawn is cancelled
+   - **`EntityJoinLevelEvent`**: If a blocked mob somehow spawns (e.g., from NBT data, commands, or creative mode), it's immediately cancelled on server-side only
+   - Server-side entity joins are checked as a fallback, including entities loaded from disk or created by commands and mods
+
+### Item Blocking Implementation
+
+Blocked items are handled without scanning every player every tick:
+
+1. **Loot Table Filtering**:
+   - Forge and NeoForge use loader-native global loot modifiers
+   - Fabric filters the central loot-table output path
+   - This applies to vanilla, modded, and datapack loot tables
+   - Lootr per-player inventories are also cleaned at creation time through optional Lootr compatibility mixins
+
+2. **Runtime Item Prevention** (`ItemBlocker`):
+   - Ground item entities with blocked items are cancelled before joining the level
+   - Blocked item pickups are denied before the stack enters the player inventory
+   - Tossed blocked items are removed instead of staying in the world
+
+3. **Inventory Cleanup** (`BlockedItemCleaner`):
+   - Player inventories, armor, offhand, ender chests, carried cursor stacks, and open containers are cleaned on login, respawn, dimension change, container open/close, crafting, and smelting
+   - A lightweight safety sweep runs once every 100 server ticks (5 seconds), not every tick
+
+4. **Storage Inventory Cleanup** (`StorageInventoryScanner`):
+   - Loaded block entity inventories are checked through Forge/NeoForge item capabilities or Fabric Transfer API
+   - This covers many technical and magic mod storages without hardcoding mod ids
+   - Scans are interval-based and processed in batches to avoid one large server tick spike
+   - Namespaces listed in `storage_scan.skipped_namespaces` are skipped before any inventory/capability access
+
+### Structure Blocking Implementation
+
+Blocked structures are handled as follows:
+
+1. **Structure Generation Prevention**:
+   - Blocked structures are filtered out during world generation
+   - Their `StructureSettings` are cleared (no biomes, no spawn overrides)
+
+2. **Biome Filtering for Structures**:
+   - Structures are checked against blocked biome list
+   - If a structure can only generate in blocked biomes, it's completely disabled
+   - Otherwise, it's allowed to generate in non-blocked biomes only
+
+3. **Mob Spawn Override Removal**:
+   - Mob spawn overrides for blocked structures are removed
+   - This prevents blocked mobs from spawning in structures even if the structure itself isn't blocked
+
+### Finding resource IDs
+
+- **Mobs**: Use `/summon <tab>` in-game or check the [Minecraft Wiki – Entities](https://minecraft.wiki/w/Entity#List_of_entities).
+- **Biomes**: Use `/locate biome <tab>` in-game or inspect the biome ids in a datapack / registry dump.
+- **Dimensions**: Vanilla examples are `minecraft:overworld`, `minecraft:the_nether`, and `minecraft:the_end`; modded dimensions use their own namespace and path.
+- **Structures**: Use `/locate structure <tab>` in-game or check the [Minecraft Wiki – Generated structures](https://minecraft.wiki/w/Generated_structures).
+- **Items**: Use `/give <player> <tab>` in-game or inspect item ids in JEI/EMI/registry dumps.
+
+## Building from Source
+
+Requirements: JDK 17, Git
 
 ```bash
+git clone https://github.com/<your-username>/Disabler.git
+cd Disabler
 ./gradlew build
 ```
 
-Per-loader artifacts are built from:
-
-```bash
-./gradlew :neoforge:build
-./gradlew :forge:build
-./gradlew :fabric:build
-```
+Loader jars are copied to `releases/` as `disabler-<loader>-1.20.1-1.3.jar`.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).

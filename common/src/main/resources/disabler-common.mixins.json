@@ -6,7 +6,10 @@
   "mixins": [
     "AlexsCavesBiomeGenerationConfigMixin",
     "AlexsCavesCaveGenerationStructurePieceMixin",
-    "AlexsCavesFillBiomeAboveFeatureMixin"
+    "AlexsCavesFillBiomeAboveFeatureMixin",
+    "ChunkMapAccessor",
+    "LootrChestDataMixin",
+    "RandomizableContainerBlockEntityAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
