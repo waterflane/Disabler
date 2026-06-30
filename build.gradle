@@ -2,7 +2,6 @@ plugins {
     id 'base'
     id 'architectury-plugin' version '3.4-SNAPSHOT'
     id 'dev.architectury.loom' version '1.14-SNAPSHOT' apply false
-    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
 }
 
 architectury {
@@ -64,9 +63,15 @@ tasks.register('collectReleases', Copy) {
     dependsOn ':fabric:build', ':forge:build', ':neoforge:build'
     into layout.projectDirectory.dir('releases')
 
-    from(project(':fabric').layout.buildDirectory.file("libs/${mod_id}-fabric-${mod_version}.jar"))
-    from(project(':forge').layout.buildDirectory.file("libs/${mod_id}-forge-${mod_version}.jar"))
-    from(project(':neoforge').layout.buildDirectory.file("libs/${mod_id}-neoforge-${mod_version}.jar"))
+    from(project(':fabric').layout.buildDirectory.file("libs/${mod_id}-fabric-${mod_version}.jar")) {
+        rename { "${mod_id}-fabric-${minecraft_version}-${mod_version}.jar" }
+    }
+    from(project(':forge').layout.buildDirectory.file("libs/${mod_id}-forge-${mod_version}.jar")) {
+        rename { "${mod_id}-forge-${minecraft_version}-${mod_version}.jar" }
+    }
+    from(project(':neoforge').layout.buildDirectory.file("libs/${mod_id}-neoforge-${mod_version}.jar")) {
+        rename { "${mod_id}-neoforge-${minecraft_version}-${mod_version}.jar" }
+    }
 }
 
 tasks.named('build') {
