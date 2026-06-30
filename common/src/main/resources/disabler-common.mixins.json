@@ -8,7 +8,8 @@
     "AlexsCavesCaveGenerationStructurePieceMixin",
     "AlexsCavesFillBiomeAboveFeatureMixin",
     "ChunkMapAccessor",
-    "LootrChestDataMixin"
+    "LootrChestDataMixin",
+    "RandomizableContainerBlockEntityAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

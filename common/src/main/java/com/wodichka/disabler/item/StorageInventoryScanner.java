@@ -2,6 +2,7 @@ package com.wodichka.disabler.item;
 
 import com.wodichka.disabler.config.DisablerConfig;
 import com.wodichka.disabler.mixin.ChunkMapAccessor;
+import com.wodichka.disabler.mixin.RandomizableContainerBlockEntityAccessor;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.Set;
@@ -64,7 +65,7 @@ public final class StorageInventoryScanner {
     }
 
     private void sanitizeBlockEntity(BlockEntity blockEntity) {
-        if (isLootrBlockEntity(blockEntity) || shouldSkipBlockEntity(blockEntity)) {
+        if (hasPendingLootTable(blockEntity) || isLootrBlockEntity(blockEntity) || shouldSkipBlockEntity(blockEntity)) {
             return;
         }
 
@@ -74,6 +75,11 @@ public final class StorageInventoryScanner {
         if (changed) {
             blockEntity.setChanged();
         }
+    }
+
+    private static boolean hasPendingLootTable(BlockEntity blockEntity) {
+        return blockEntity instanceof RandomizableContainerBlockEntityAccessor container
+                && container.disabler$getLootTable() != null;
     }
 
     private static boolean shouldSkipBlockEntity(BlockEntity blockEntity) {
@@ -108,7 +114,9 @@ public final class StorageInventoryScanner {
             return true;
         }
 
-        return blockEntity.getClass().getName().startsWith("noobanidus.mods.lootr.");
+        String className = blockEntity.getClass().getName();
+        return className.startsWith("noobanidus.mods.lootr.")
+                || className.startsWith("net.zestyblaze.lootr.");
     }
 
     @FunctionalInterface
