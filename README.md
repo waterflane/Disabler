@@ -8,7 +8,11 @@ A server-side mod that lets server admins block mobs, biomes, structures, dimens
 - **Block dimensions** — cancel travel before an entity enters any configured vanilla or modded dimension
 - **Block items** — remove configured items from generated loot, pickups, player inventories, ender chests, and open containers
 
-## Requirements
+| Loader | Status |
+|--------|--------|
+| NeoForge | Native artifact |
+| Forge | Native artifact |
+| Fabric | Native artifact, Fabric API required |
 
 | Component | Version |
 |-----------|---------|
@@ -76,13 +80,14 @@ When a biome is blocked via the config, the following happens:
    - Mob spawn overrides are removed from blocked structures
    - If a structure can only generate in blocked biomes, it's completely disabled
 
-### Mob Blocking Implementation
+## Implementation Notes
 
-Blocked mobs are handled at two runtime points:
+- Common code owns config parsing, immutable runtime snapshots, biome replacement, and shared Minecraft/Alex's Caves mixins.
+- NeoForge and Forge use loader-native events plus biome and structure modifiers.
+- Fabric uses Fabric entrypoint loading plus mixins for entity add, dimension travel, Nether portal creation, structure generation, and spawn-list filtering.
+- Blocked dimension travel is cancelled in-place. Players are not teleported to spawn as a fallback.
 
-1. **Spawn List Cleanup** (via `BiomeModifier`):
-   - Blocked mobs are removed from all biome spawn lists during world generation
-   - This prevents them from being scheduled for spawning
+## Building
 
 2. **Runtime Spawn Cancellation** (`MobSpawnBlocker`):
    - **`FinalizeSpawnEvent`**: When a mob spawn attempt is finalized, if the mob type is blocked, the spawn is cancelled
@@ -144,8 +149,6 @@ Blocked structures are handled as follows:
 Requirements: JDK 21, Git
 
 ```bash
-git clone https://github.com/<your-username>/Disabler.git
-cd Disabler
 ./gradlew build
 ```
 
@@ -153,4 +156,4 @@ Loader jars are copied to `releases/` as `disabler-<loader>-1.21.1-1.3.jar`.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
