@@ -2,17 +2,11 @@
 
 A server-side mod that lets server admins block mobs, biomes, structures, dimensions, and items through a simple JSON config. No GUI is required, and config changes are picked up on the next world load.
 
-Current mod version: **1.3**
-
 - **Block mob spawns** — remove mobs from biome spawn lists and cancel runtime spawn attempts
 - **Block biomes** — strip their mob spawns, carvers, features, and structures from world generation; blocked biomes are replaced with allowed alternatives at runtime
 - **Block structures** — prevent entire structure types from generating and strip their mob spawn overrides
 - **Block dimensions** — cancel travel before an entity enters any configured vanilla or modded dimension
 - **Block items** — remove configured items from generated loot, pickups, player inventories, ender chests, and open containers
-- **Scan loaded storages** — clean compatible technical and magic mod inventories in configurable batches
-- **Lootr compatibility** — filter each player's generated Lootr inventory while preserving Lootr chests, barrels, frames, and other containers
-- Config-driven: plain JSON file, no commands or GUI needed
-- Server-side only (no client install required)
 
 ## Requirements
 
@@ -58,7 +52,6 @@ The mod creates two files:
 - **JSON reload timing**: The config is loaded during mod initialization and reloaded when the server/world is about to start.
 - **Storage Scan**: `storage_scan.enabled` allows blocked items to be removed from loaded block entity inventories exposed through NeoForge item capabilities. `interval_ticks` defaults to 300 ticks (about 15 seconds), and `block_entities_per_tick` limits how many loaded block entities are processed per tick while a scan is running.
 - **Config guide**: The mod creates `config/DisablerGuide.md` next to the JSON config. It briefly describes every parameter and is kept in sync with the current config format.
-- **Lootr Compatibility**: `storage_scan.skipped_namespaces` is empty by default. Physical Lootr chests, barrels, shulker boxes, frames, and similar containers are protected internally and are never processed as ordinary storages. Lootr-generated per-player inventories are filtered separately when they are created, so blocked items are removed without replacing Lootr containers with vanilla ones.
 
 ### Biome Blocking Implementation
 
