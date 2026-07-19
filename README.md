@@ -1,33 +1,161 @@
+<div align="center">
+
 # Disabler
+<img width="1280" height="512" alt="изображение" src="https://github.com/user-attachments/assets/cbbb44c0-1ba5-4f82-9cf8-b1df523a661a" />
 
-A server-side mod that lets server admins block mobs, biomes, structures, dimensions, and items through a simple JSON config. No GUI is required, and config changes are picked up on the next world load.
+[![GitHub Stars](https://img.shields.io/github/stars/waterflane/Disabler?style=for-the-badge\&logo=github)](https://github.com/waterflane/Disabler/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/waterflane/Disabler?style=for-the-badge\&logo=github)](https://github.com/waterflane/Disabler/network/members)
+[![Latest Release](https://img.shields.io/github/v/release/waterflane/Disabler?style=for-the-badge\&logo=github)](https://github.com/waterflane/Disabler/releases/latest)
+[![License](https://img.shields.io/github/license/waterflane/Disabler?style=for-the-badge)](LICENSE)
 
-- **Block mob spawns** — remove mobs from biome spawn lists and cancel runtime spawn attempts
-- **Block biomes** — strip their mob spawns, carvers, features, and structures from world generation; blocked biomes are replaced with allowed alternatives at runtime
-- **Block structures** — prevent entire structure types from generating and strip their mob spawn overrides
-- **Block dimensions** — cancel travel before an entity enters any configured vanilla or modded dimension
-- **Block items** — remove configured items from generated loot, pickups, player inventories, ender chests, and open containers
+[![Download on Modrinth](https://img.shields.io/badge/Download-Modrinth-00AF5C?style=for-the-badge\&logo=modrinth\&logoColor=white)](https://modrinth.com/mod/disabler/versions)
+[![Download on CurseForge](https://img.shields.io/badge/Download-CurseForge-F16436?style=for-the-badge\&logo=curseforge\&logoColor=white)](https://www.curseforge.com/minecraft/mc-mods/disabler/files/all)
 
-| Loader | Status |
-|--------|--------|
-| NeoForge | Native artifact |
-| Forge | Native artifact |
-| Fabric | Native artifact, Fabric API required |
+[![Modrinth Downloads](https://img.shields.io/modrinth/dt/disabler?style=flat-square\&logo=modrinth\&label=Modrinth%20downloads)](https://modrinth.com/mod/disabler)
+[![CurseForge Downloads](https://img.shields.io/curseforge/dt/1537081?style=flat-square\&logo=curseforge\&label=CurseForge%20downloads)](https://www.curseforge.com/minecraft/mc-mods/disabler)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1%20%7C%201.21.1-62B47A?style=flat-square)](#supported-versions)
+[![Loaders](https://img.shields.io/badge/loaders-Fabric%20%7C%20Forge%20%7C%20NeoForge-4C8BF5?style=flat-square)](#supported-versions)
+[![Environment](https://img.shields.io/badge/environment-server--side-6E40C9?style=flat-square)](#installation)
 
-| Component | Version |
-|-----------|---------|
-| Minecraft | 1.21.1 |
-| Fabric Loader | 0.16.10+ |
-| Fabric API | 0.116.12+1.21.1 |
-| Forge | 52.1.x |
-| NeoForge | 21.1.x |
+A server-side Minecraft mod for blocking mobs, biomes, structures, dimensions, and items through a single JSON configuration file.
+
+No GUI, commands, datapacks, or client-side installation required for dedicated servers.
+
+<br/>
+
+**[Download](#download)** · **[Features](#features)** · **[Installation](#installation)** · **[Configuration](#configuration)** · **[How It Works](#how-it-works)**
+
+</div>
+
+---
+
+> [!IMPORTANT]
+> Disabler is installed only on the dedicated server. Players can join without installing the mod on their clients.
+
+> [!WARNING]
+> Back up the world before changing biome or structure settings. World-generation changes affect newly generated chunks and do not rewrite existing terrain.
+
+## Download
+
+The latest public release is **Disabler 1.3**.
+
+Choose the file matching both your Minecraft version and mod loader.
+
+| Platform       | Download page                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| **Modrinth**   | [Browse versions and download](https://modrinth.com/mod/disabler/versions)                   |
+| **CurseForge** | [Browse files and download](https://www.curseforge.com/minecraft/mc-mods/disabler/files/all) |
+| **GitHub**     | [View source releases](https://github.com/waterflane/Disabler/releases/latest)               |
+
+> [!CAUTION]
+> Do not install a `1.20.1` artifact on Minecraft `1.21.1`, or a `1.21.1` artifact on Minecraft `1.20.1`. Also make sure the artifact name matches your loader: `fabric`, `forge`, or `neoforge`.
+
+## Features
+
+| Feature                        | Behavior                                                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| **Mob blocking**               | Removes configured mobs from biome spawn lists and cancels runtime spawn attempts                             |
+| **Biome blocking**             | Excludes configured biomes from newly generated terrain and replaces them with allowed alternatives           |
+| **Structure blocking**         | Prevents configured structures from starting and removes their mob spawn overrides                            |
+| **Dimension blocking**         | Cancels travel before an entity enters a configured vanilla or modded dimension                               |
+| **Item blocking**              | Removes configured items from loot, entities, players, containers, crafting, smelting, and supported storages |
+| **Storage scanning**           | Cleans loaded vanilla and modded inventories in configurable batches                                          |
+| **Lootr compatibility**        | Filters generated per-player Lootr inventories without replacing Lootr containers                             |
+| **Alex's Caves compatibility** | Includes additional handling for Alex's Caves biome-generation paths                                          |
+| **Legacy migration**           | Migrates known settings from the previous TOML configuration format                                           |
+
+## Release 1.3
+
+Disabler 1.3 expands the mod from world-generation and spawn control into a broader server-side restriction system.
+
+Main changes include:
+
+* Full blocking of vanilla and modded items
+* Removal of blocked items from generated loot
+* Cleanup of player inventories, equipment, ender chests, crafting results, furnace results, open containers, and supported storages
+* Migration from TOML to strict JSON configuration
+* Automatic migration of known values from an existing `disabler-server.toml`
+* Automatic generation of `config/DisablerGuide.md`
+* Fixed biome replacement so land biomes are not replaced with ocean biomes
+* Native builds for Fabric, Forge, and NeoForge
+* Support for Minecraft 1.20.1 and 1.21.1
+
+## Supported Versions
+
+| Minecraft  | Java    | Fabric                                          | Forge    | NeoForge               |
+| ---------- | ------- | ----------------------------------------------- | -------- | ---------------------- |
+| **1.21.1** | Java 21 | Loader `0.16.10+`, Fabric API `0.116.12+1.21.1` | `52.1.x` | `21.1.x`               |
+| **1.20.1** | Java 17 | Loader `0.16.10+`, Fabric API `0.92.9+1.20.1`   | `47.4.x` | `47.1.x` legacy branch |
+
+Every supported combination has its own native artifact.
+
+| Loader   | Artifact                               |
+| -------- | -------------------------------------- |
+| NeoForge | Native NeoForge JAR                    |
+| Forge    | Native Forge JAR                       |
+| Fabric   | Native Fabric JAR; Fabric API required |
+
+> [!NOTE]
+> The NeoForge build for Minecraft 1.20.1 targets the legacy NeoForge 47.1.x line. Do not replace it with the Forge artifact even though both loaders originate from the same ecosystem.
+
+## Installation
+
+### Dedicated server
+
+1. Select your Minecraft version:
+
+   * `1.20.1`
+   * `1.21.1`
+
+2. Select your mod loader:
+
+   * Fabric
+   * Forge
+   * NeoForge
+
+3. Download the matching Disabler artifact from:
+
+   * [Modrinth](https://modrinth.com/mod/disabler/versions)
+   * [CurseForge](https://www.curseforge.com/minecraft/mc-mods/disabler/files/all)
+
+4. Place the downloaded JAR in the server's `mods` directory.
+
+5. When using Fabric, install the corresponding version of Fabric API.
+
+6. Start the server once to generate the configuration.
+
+7. Stop the server and edit:
+
+   ```text
+   config/disabler-server.json
+   ```
+
+8. Start the server again to apply the configuration.
+
+### Singleplayer
+
+Disabler also works in singleplayer through Minecraft's integrated server.
+
+In that case, install the mod in the local instance's `mods` directory. Fabric installations also require Fabric API.
 
 ## Configuration
 
-The mod creates two files:
+Disabler creates two files:
 
-- `.minecraft/config/disabler-server.json` - the server configuration
-- `.minecraft/config/DisablerGuide.md` - a short guide for every parameter
+```text
+config/
+├── disabler-server.json
+└── DisablerGuide.md
+```
+
+| File                   | Purpose                                               |
+| ---------------------- | ----------------------------------------------------- |
+| `disabler-server.json` | Active server configuration                           |
+| `DisablerGuide.md`     | Automatically generated reference for every parameter |
+
+The same JSON format is used on Fabric, Forge, and NeoForge.
+
+### Default configuration
 
 ```json
 {
@@ -48,112 +176,452 @@ The mod creates two files:
 }
 ```
 
-### Key Points
+### Configuration reference
 
-- **Biome Exceptions**: By default, `minecraft:mushroom_fields` is listed in `biome_exceptions`. This prevents it from being used as a replacement for blocked biomes, since mushroom biomes have special generation requirements (e.g., spawning only on islands). You can remove it from this list if you want mushroom biomes to be used as replacements.
-- **All lists can be empty**: Leave any list empty (`[]`) to disable that feature entirely.
-- **Config is written to disk**: When the mod generates `disabler-server.json` for the first time, it includes the default `minecraft:mushroom_fields` in the exceptions list. If an old `disabler-server.toml` exists and JSON does not, known list keys are migrated into the new JSON file.
-- **JSON reload timing**: The config is loaded during mod initialization and reloaded when the server/world is about to start.
-- **Storage Scan**: `storage_scan.enabled` allows blocked items to be removed from loaded block entity inventories exposed through NeoForge item capabilities. `interval_ticks` defaults to 300 ticks (about 15 seconds), and `block_entities_per_tick` limits how many loaded block entities are processed per tick while a scan is running.
-- **Config guide**: The mod creates `config/DisablerGuide.md` next to the JSON config. It briefly describes every parameter and is kept in sync with the current config format.
+| Parameter                              | Type             | Description                                                                   |
+| -------------------------------------- | ---------------- | ----------------------------------------------------------------------------- |
+| `blocked_mobs`                         | Resource ID list | Entity types that cannot spawn or enter a server level                        |
+| `blocked_biomes`                       | Resource ID list | Biomes excluded from newly generated chunks                                   |
+| `biome_exceptions`                     | Resource ID list | Biomes that cannot be selected as replacements                                |
+| `blocked_structures`                   | Resource ID list | Structures prevented from starting in new chunks                              |
+| `blocked_dimensions`                   | Resource ID list | Dimensions that entities cannot enter                                         |
+| `blocked_items`                        | Resource ID list | Items removed from loot, entities, inventories, menus, and supported storages |
+| `storage_scan.enabled`                 | Boolean          | Enables periodic scanning of loaded block entity inventories                  |
+| `storage_scan.interval_ticks`          | Integer          | Delay between complete storage scan cycles                                    |
+| `storage_scan.block_entities_per_tick` | Integer          | Maximum queued block entities processed during one server tick                |
+| `storage_scan.skipped_namespaces`      | Namespace list   | Mod namespaces excluded from physical storage scanning                        |
 
-### Biome Blocking Implementation
+All blocking lists may remain empty:
 
-When a biome is blocked via the config, the following happens:
+```json
+"blocked_mobs": []
+```
 
-1. **World Generation Phase** (`ConfigDrivenBiomeModifier`):
-   - All mob spawn entries are **cleared** from the blocked biome's spawn settings
-   - Carvers, features, and structures associated with that biome are removed
-   - The biome is excluded from structure generation filters
+An empty list disables that restriction without affecting the other features.
 
-2. **Runtime Biome Replacement** (`MultiNoiseBiomeSourceMixin`):
-   - During world generation, when a blocked biome would be selected via `getNoiseBiome()`, it's intercepted
-   - The biome is replaced with an **allowed alternative** from the same biome parameter list
-   - Replacement stays inside the current dimension because the candidate pool is collected from that dimension's own `MultiNoiseBiomeSource` (Nether uses only Nether biomes, Overworld uses only Overworld biomes, etc.)
-   - **Biome exceptions**: Biomes listed in `biome_exceptions` config section are **excluded from the replacement pool**. By default, `minecraft:mushroom_fields` is included in this list to prevent it from replacing blocked biomes (since it has special island-only generation requirements).
-   - Allowed biomes are collected once and cached in memory for performance
-   - If no allowed biomes exist (including exceptions), the blocked biome is kept as fallback (prevents empty world generation)
+## Example Configuration
 
-3. **Structure Filtering** (`ConfigDrivenStructureModifier`):
-   - Blocked structures don't generate at all
-   - Structures are filtered to only generate in **non-blocked biomes**
-   - Mob spawn overrides are removed from blocked structures
-   - If a structure can only generate in blocked biomes, it's completely disabled
+The following example blocks zombies, plains biomes, plains villages, the End, and elytras:
 
-## Implementation Notes
+```json
+{
+  "blocked_mobs": [
+    "minecraft:zombie"
+  ],
+  "blocked_biomes": [
+    "minecraft:plains"
+  ],
+  "biome_exceptions": [
+    "minecraft:mushroom_fields"
+  ],
+  "blocked_structures": [
+    "minecraft:village_plains"
+  ],
+  "blocked_dimensions": [
+    "minecraft:the_end"
+  ],
+  "blocked_items": [
+    "minecraft:elytra"
+  ],
+  "storage_scan": {
+    "enabled": true,
+    "interval_ticks": 300,
+    "block_entities_per_tick": 512,
+    "skipped_namespaces": []
+  }
+}
+```
 
-- Common code owns config parsing, immutable runtime snapshots, biome replacement, and shared Minecraft/Alex's Caves mixins.
-- NeoForge and Forge use loader-native events plus biome and structure modifiers.
-- Fabric uses Fabric entrypoint loading plus mixins for entity add, dimension travel, Nether portal creation, structure generation, and spawn-list filtering.
-- Blocked dimension travel is cancelled in-place. Players are not teleported to spawn as a fallback.
+Configuration changes are loaded during mod initialization and again before the server world starts.
 
-## Building
+Restart the server after editing the file.
 
-2. **Runtime Spawn Cancellation** (`MobSpawnBlocker`):
-   - **`FinalizeSpawnEvent`**: When a mob spawn attempt is finalized, if the mob type is blocked, the spawn is cancelled
-   - **`EntityJoinLevelEvent`**: If a blocked mob somehow spawns (e.g., from NBT data, commands, or creative mode), it's immediately cancelled on server-side only
-   - Client-side spawns and disk-loaded entities are not affected
+## Biome Exceptions
 
-### Item Blocking Implementation
+`minecraft:mushroom_fields` is included in `biome_exceptions` by default.
 
-Blocked items are handled without scanning every player every tick:
+Mushroom fields have special terrain-generation requirements and normally generate as isolated islands. Excluding them prevents mushroom fields from unexpectedly replacing blocked continental biomes.
 
-1. **Loot Table Filtering**:
-   - Forge and NeoForge use loader-native global loot modifiers
-   - Fabric filters the central loot-table output path
-   - This applies to vanilla, modded, and datapack loot tables
-   - Lootr per-player inventories are also cleaned at creation time through optional Lootr compatibility mixins
+You may remove the entry when mushroom fields should be available as replacement candidates:
 
-2. **Runtime Item Prevention** (`ItemBlocker`):
-   - Ground item entities with blocked items are cancelled before joining the level
-   - Blocked item pickups are denied before the stack enters the player inventory
-   - Tossed blocked items are removed instead of staying in the world
+```json
+"biome_exceptions": []
+```
 
-3. **Inventory Cleanup** (`BlockedItemCleaner`):
-   - Player inventories, armor, offhand, ender chests, carried cursor stacks, and open containers are cleaned on login, respawn, dimension change, container open/close, crafting, and smelting
-   - A lightweight safety sweep runs once every 100 server ticks (5 seconds), not every tick
+Disabler also preserves the broad terrain category during biome replacement:
 
-4. **Storage Inventory Cleanup** (`StorageInventoryScanner`):
-   - Loaded block entity inventories are checked through Forge/NeoForge item capabilities or Fabric Transfer API
-   - This covers many technical and magic mod storages without hardcoding mod ids
-   - Scans are interval-based and processed in batches to avoid one large server tick spike
-   - Namespaces listed in `storage_scan.skipped_namespaces` are skipped before any inventory/capability access
+* Land biomes are replaced with land candidates
+* Water biomes are replaced with water candidates
+* Replacement candidates remain inside the current dimension
 
-### Structure Blocking Implementation
+If no valid replacement can be found, the original biome is retained as a safe fallback instead of breaking world generation.
 
-Blocked structures are handled as follows:
+## Item and Storage Blocking
 
-1. **Structure Generation Prevention**:
-   - Blocked structures are filtered out during world generation
-   - Their `StructureSettings` are cleared (no biomes, no spawn overrides)
+Blocked items are handled at several points rather than through a full inventory scan every tick.
 
-2. **Biome Filtering for Structures**:
-   - Structures are checked against blocked biome list
-   - If a structure can only generate in blocked biomes, it's completely disabled
-   - Otherwise, it's allowed to generate in non-blocked biomes only
+### Generated loot
 
-3. **Mob Spawn Override Removal**:
-   - Mob spawn overrides for blocked structures are removed
-   - This prevents blocked mobs from spawning in structures even if the structure itself isn't blocked
+Blocked items are removed from:
 
-### Finding resource IDs
+* Vanilla loot tables
+* Modded loot tables
+* Datapack loot tables
+* Generated Lootr per-player inventories
 
-- **Mobs**: Use `/summon <tab>` in-game or check the [Minecraft Wiki – Entities](https://minecraft.wiki/w/Entity#List_of_entities).
-- **Biomes**: Use `/locate biome <tab>` in-game or inspect the biome ids in a datapack / registry dump.
-- **Dimensions**: Vanilla examples are `minecraft:overworld`, `minecraft:the_nether`, and `minecraft:the_end`; modded dimensions use their own namespace and path.
-- **Structures**: Use `/locate structure <tab>` in-game or check the [Minecraft Wiki – Generated structures](https://minecraft.wiki/w/Generated_structures).
-- **Items**: Use `/give <player> <tab>` in-game or inspect item ids in JEI/EMI/registry dumps.
+Unopened loot-table containers remain untouched until their loot is generated.
+
+### Item entities
+
+Disabler prevents blocked items from remaining in the world:
+
+* Ground item entities are cancelled
+* Player pickups are denied
+* Tossed blocked items are removed
+
+### Player inventories
+
+Blocked items are cleaned from:
+
+* Main inventory
+* Armor
+* Offhand
+* Ender chest
+* Carried cursor stack
+* Open containers
+* Crafting results
+* Smelting results
+
+Cleanup is triggered during relevant events such as login, respawn, dimension changes, container interaction, crafting, and smelting.
+
+A lightweight safety sweep runs once every `100` server ticks, approximately every 5 seconds.
+
+### Storage scanning
+
+Loaded block entity inventories are checked through:
+
+* Forge and NeoForge item capabilities
+* Fabric Transfer API
+
+This allows Disabler to work with many technical and magic mod storages without hardcoding every mod ID.
+
+Storage scanning is interval-based and processed in batches to reduce server tick spikes.
+
+Default settings:
+
+```json
+{
+  "storage_scan": {
+    "enabled": true,
+    "interval_ticks": 300,
+    "block_entities_per_tick": 512,
+    "skipped_namespaces": []
+  }
+}
+```
+
+`300` ticks is approximately 15 seconds.
+
+Increasing `interval_ticks` reduces scan frequency. Reducing `block_entities_per_tick` spreads the work across more server ticks.
+
+To exclude all physical storages belonging to a particular mod:
+
+```json
+"skipped_namespaces": [
+  "examplemod"
+]
+```
+
+The namespace is checked before Disabler accesses the inventory or item capability.
+
+## Legacy TOML Migration
+
+Older versions used:
+
+```text
+config/disabler-server.toml
+```
+
+When the JSON file does not exist but the old TOML file is present, Disabler migrates known list settings into:
+
+```text
+config/disabler-server.json
+```
+
+The old TOML file is retained as a backup. All further configuration uses JSON.
+
+> [!NOTE]
+> Review the generated JSON after migration, especially when the old TOML was manually modified or contained unsupported keys.
+
+## Important Behavior
+
+* Existing chunks are not regenerated when a biome is blocked
+* Existing structures are not removed from generated chunks
+* Blocking a dimension does not delete its world data
+* Dimension travel is cancelled before the entity changes level
+* Players are not teleported to spawn when travel is denied
+* Blocking the Nether also prevents new Nether portals from forming
+* Existing blocked items are removed when the relevant inventory, container, or storage cleanup runs
+* Configuration changes require a server restart or world reload
+* Dedicated-server players do not need the mod installed client-side
+
+## Finding Resource IDs
+
+Disabler uses namespaced Minecraft resource IDs:
+
+```text
+namespace:path
+```
+
+Vanilla examples:
+
+```text
+minecraft:zombie
+minecraft:plains
+minecraft:village_plains
+minecraft:the_end
+minecraft:elytra
+```
+
+Modded resources use the namespace registered by their mod:
+
+```text
+examplemod:custom_mob
+examplemod:custom_biome
+examplemod:custom_structure
+examplemod:custom_dimension
+examplemod:custom_item
+```
+
+| Resource       | How to find its ID                                                                    |
+| -------------- | ------------------------------------------------------------------------------------- |
+| **Mobs**       | Enter `/summon ` and use command completion                                           |
+| **Biomes**     | Enter `/locate biome ` and use command completion                                     |
+| **Structures** | Enter `/locate structure ` and use command completion                                 |
+| **Dimensions** | Check the mod documentation, datapack, or registry dump                               |
+| **Items**      | Enter `/give <player> ` and use command completion, or inspect the item in JEI or EMI |
+
+Additional vanilla references:
+
+* [Minecraft Wiki — Entities](https://minecraft.wiki/w/Entity#List_of_entities)
+* [Minecraft Wiki — Generated structures](https://minecraft.wiki/w/Generated_structures)
+
+## How It Works
+
+<details>
+<summary><strong>Mob blocking</strong></summary>
+
+Blocked mobs are removed from biome spawn lists so they are not selected by normal spawning.
+
+Runtime checks also reject blocked entities when they attempt to enter a server level through:
+
+* Natural spawning
+* Commands
+* Mods
+* NBT loading
+* Creative actions
+* Other non-standard creation paths
+
+Loader-native events and mixins provide equivalent behavior across Fabric, Forge, and NeoForge.
+
+</details>
+
+<details>
+<summary><strong>Biome blocking</strong></summary>
+
+For blocked biomes, Disabler removes:
+
+* Mob spawn entries
+* Carvers
+* Placed features
+* Associated structures
+* Structure-generation eligibility
+
+When a blocked biome would be selected during generation, Disabler replaces it with an allowed candidate from the current dimension.
+
+Replacement candidates are cached for performance and selected while preserving the land or water category.
+
+Additional compatibility handling is included for Alex's Caves cave biome-generation paths.
+
+</details>
+
+<details>
+<summary><strong>Structure blocking</strong></summary>
+
+Blocked structures are filtered out before they can start generating.
+
+Disabler also:
+
+* Clears their biome eligibility
+* Removes their mob spawn overrides
+* Removes blocked biomes from structures that remain enabled
+* Disables a structure completely when all of its eligible biomes are blocked
+* Removes blocked mob overrides from structures that are otherwise allowed
+
+</details>
+
+<details>
+<summary><strong>Dimension blocking</strong></summary>
+
+Dimension travel is intercepted before an entity changes level.
+
+Both vanilla and modded dimension IDs are supported.
+
+When travel is denied:
+
+* The entity remains in its current dimension
+* No spawn teleport fallback is used
+* New Nether portals are prevented when `minecraft:the_nether` is blocked
+
+</details>
+
+<details>
+<summary><strong>Item blocking</strong></summary>
+
+Disabler combines several mechanisms:
+
+* Global loot filtering
+* Item entity rejection
+* Pickup prevention
+* Player inventory cleanup
+* Crafting and smelting result cleanup
+* Open-container cleanup
+* Batched block entity storage scanning
+* Optional Lootr compatibility handling
+
+This avoids scanning every player and every storage during every server tick.
+
+</details>
+
+## Project Structure
+
+The project uses shared common code with loader-specific integration modules.
+
+```text
+Disabler/
+├── common/
+├── fabric/
+├── forge/
+└── neoforge/
+```
+
+### Common module
+
+The common module owns:
+
+* JSON configuration parsing
+* Immutable runtime configuration snapshots
+* Shared blocking logic
+* Biome replacement
+* Shared Minecraft mixins
+* Optional compatibility mixins
+
+### Loader modules
+
+Forge and NeoForge primarily use:
+
+* Loader-native events
+* Biome modifiers
+* Structure modifiers
+* Global loot modifiers
+* Item capabilities
+
+Fabric primarily uses:
+
+* Fabric entrypoint loading
+* Fabric API
+* Fabric Transfer API
+* Mixins for entity insertion
+* Dimension travel interception
+* Portal handling
+* Structure generation
+* Spawn-list filtering
+* Loot output filtering
 
 ## Building from Source
 
-Requirements: JDK 21, Git
+The repository uses separate branches for each supported Minecraft version.
+
+| Minecraft | Branch        | Required JDK |
+| --------- | ------------- | ------------ |
+| `1.21.1`  | `1.21.1/main` | JDK 21       |
+| `1.20.1`  | `1.20.1/main` | JDK 17       |
+
+### Clone the repository
 
 ```bash
+git clone https://github.com/waterflane/Disabler.git
+cd Disabler
+```
+
+### Build for Minecraft 1.21.1
+
+```bash
+git checkout 1.21.1/main
 ./gradlew build
 ```
 
-Loader jars are copied to `releases/` as `disabler-<loader>-1.21.1-1.3.jar`.
+Windows:
+
+```powershell
+git checkout 1.21.1/main
+.\gradlew.bat build
+```
+
+### Build for Minecraft 1.20.1
+
+```bash
+git checkout 1.20.1/main
+./gradlew build
+```
+
+Windows:
+
+```powershell
+git checkout 1.20.1/main
+.\gradlew.bat build
+```
+
+Loader artifacts are copied into:
+
+```text
+releases/
+```
+
+Artifact names follow this format:
+
+```text
+disabler-<loader>-<minecraft-version>-<mod-version>.jar
+```
+
+Examples:
+
+```text
+disabler-fabric-1.20.1-1.3.jar
+disabler-forge-1.20.1-1.3.jar
+disabler-neoforge-1.20.1-1.3.jar
+
+disabler-fabric-1.21.1-1.3.jar
+disabler-forge-1.21.1-1.3.jar
+disabler-neoforge-1.21.1-1.3.jar
+```
+
+## Bug Reports
+
+Report bugs through [GitHub Issues](https://github.com/waterflane/Disabler/issues).
+
+Include:
+
+* Minecraft version
+* Loader and loader version
+* Disabler version
+* Relevant section of `disabler-server.json`
+* Server log or crash report
+* Minimal reproduction steps
+* Names and versions of potentially related mods
+
+Do not include authentication tokens, private server addresses, or unrelated log content.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+Disabler is distributed under the [MIT License](LICENSE).
